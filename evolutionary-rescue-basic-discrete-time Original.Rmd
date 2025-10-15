@@ -2,10 +2,7 @@
 title: "Basic model of evolutionary rescue in discrete time"
 author: "Iona & Pascal"
 date: "2025-10-15"
-=======
-title: "Project"
-author: "Claudia Bank"
-date: "2025-10-14"
+
 
 output:
   html_document:
@@ -18,6 +15,9 @@ In this notebook, we are implementing simulations of evolutionary rescue by a si
 
 testtesttest
 
+
+
+#hardy equilibrium 1 = p^2 +2pq + q^2
 
 N_aa <- 100
 N_AA <- 10
