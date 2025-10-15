@@ -34,6 +34,10 @@ Variables we need:
   
 Functions we need:
   - Function that calculates probabillity for turning into different genotype
+  - p(Aa= )
+  - g1 -> <90 aa, 10 Aa
+  - g2 -> 
+  
   
   
   
