@@ -10,6 +10,14 @@ output:
 ---
 
 ## Simulating evolutionary rescue in discrete time
+Idea: Inbreed depression in population with rezessiv disease (aa) that leads to lower fitness and is therefore declining in population size. Goal is to rescue population with hybrids. How many healthy individuals are needed to rescue the population. only healthy (AA) are added, 
+Assumptions:
+  - starting population is homozygot for the disease (aa)
+  - healthy added individuals are homozygot without the disease (AA)
+  - second generation can mate with sick individuum or hybrid
+
+Question: How many individuals have to be introduced at time x to rescue a homozygot population with low fitness (inbreed depression)?
+
 
 In this notebook, we are implementing simulations of evolutionary rescue by a single mutation in discrete time, as discussed and analyzed in the work by Orr & Unckless. The model is as follows: a haploid population starts with a given number of wild-type and mutant individuals. Because of a sudden environmental change, the wild type is unfit and declines in the new environment. The mutant is beneficial and can survive and expand in the new environment, but it starts at a low (or zero) frequency in the total population. In order to rescue the population, it has to outcompete the wild type. If the mutant is not present at time 0, it has to appear through mutation and then spread in the population before extinction occurs.
 
@@ -17,7 +25,11 @@ testtesttest
 
 
 
-#hardy equilibrium 1 = p^2 +2pq + q^2
+
+
+
+
+#hardy equilibrium 1 = p^2 +2pq +q^2
 
 N_aa <- 100
 N_AA <- 10
