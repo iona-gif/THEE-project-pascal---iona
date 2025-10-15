@@ -16,6 +16,23 @@ output:
 
 In this notebook, we are implementing simulations of evolutionary rescue by a single mutation in discrete time, as discussed and analyzed in the work by Orr & Unckless. The model is as follows: a haploid population starts with a given number of wild-type and mutant individuals. Because of a sudden environmental change, the wild type is unfit and declines in the new environment. The mutant is beneficial and can survive and expand in the new environment, but it starts at a low (or zero) frequency in the total population. In order to rescue the population, it has to outcompete the wild type. If the mutant is not present at time 0, it has to appear through mutation and then spread in the population before extinction occurs.
 
+
+#Notes
+First we define the variables and parameters.
+Parameters we need:
+  - initial Population size with genotype aa -> N0_aa
+  - initial Population size with genotype AA -> N0_AA
+  - fitness disadvantage of heterozygotes aa -> decay.rate_aa
+  - 
+Variables we need:
+  - we dont have a mutation rate but a probability of aa becoming aA (dencity dependence)
+  - probability of aA becoming AA (dencity dependence)
+  - amount of different genotype -> aa, aA, AA
+  - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added 
+  
+Functions we need:
+  - Function that calculates probabillity for turning into different genotype
+
 testtesttest
 ```{r}
 N_aa <- 100
@@ -44,6 +61,8 @@ simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa) {
   predicted_frequency_AA <- (freq_A / total_gametes)^2
   predicted_frequency_aa <- (freq_a / total_gametes)^2
   predicted_frequency_aA <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
+  
+  ### here
   
   #freq_A_mut <- freq_A * (1 - mut_rate) + freq_a * mut_rate
   #freq_a_mut <- 1 - freq_A_mut
