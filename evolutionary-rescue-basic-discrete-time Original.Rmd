@@ -1,5 +1,4 @@
 ---
-<<<<<<< HEAD
 title: "Basic model of evolutionary rescue in discrete time"
 author: "Iona & Pascal"
 date: "2025-10-15"
@@ -7,7 +6,7 @@ date: "2025-10-15"
 title: "Project"
 author: "Claudia Bank"
 date: "2025-10-14"
->>>>>>> fea02af2eff9999d706bae155fd7ea3653299044
+
 output:
   html_document:
     df_print: paged
