@@ -59,7 +59,7 @@ N_aa <- 100
 N_AA <- 10
 N_Aa <- 0
 
-r_aa <- 0.2 # fitness malus of aa allel comb. equal to decay_rate
+r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
 s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
 s_Aa <- 1.10 # fitness benefit of allel A, equal to sel_coeff
 
@@ -73,7 +73,7 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
     
   # Total numbeer of gamets proportional to the frequency of alleles A and a
   total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
-  freq_A <- (2 * offsp_AA + offsp_Aa) / total_gametes
+  freq_A <- (2 * offsp_AA + offsp_Aa) - (2 * offsp_aa)
   freq_a <- 1 - freq_A
   
   # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
@@ -126,7 +126,7 @@ simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
     # add the new population sizes to the output vector
     pop_vector <- rbind(pop_vector,pop_new)
     # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
-    if (pop_new[1]+pop_new[2]+pop_new[3]>=1.5*(N_aa+N_AA+N_Aa) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
+    if (pop_new[1]+pop_new[2]+pop_new[3]>=2*(N_aa+N_AA+N_Aa) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
   }
   
   # define the row and column names of the output vector
