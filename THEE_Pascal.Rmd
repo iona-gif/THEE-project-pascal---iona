@@ -60,8 +60,9 @@ First we define the variables and parameters.
 
 ```{r}
 N_aa <- 100
-N_AA <- 0
 N_Aa <- 0
+N_AA <- 5
+# Change the order to N_aa, N_Aa, N_AA everywhere
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
 s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
@@ -80,22 +81,43 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
   freq_A <- (2 * offsp_AA + offsp_Aa) 
   freq_a <- total_gametes - freq_A
   
+  if (total_gametes > 0) {
+
+  
+  #print(freq_a)
+  #print(total_gametes)
+  
   # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
-  predicted_freq_aa <- (freq_a / total_gametes)^2
-  predicted_freq_AA <- (freq_A / total_gametes)^2
+  predicted_freq_aa <- (freq_a/total_gametes)^2
+  predicted_freq_AA <- (freq_A/total_gametes)^2
   predicted_freq_Aa <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
   
+  #print(predicted_freq_Aa)
+  #print("PROBLEM")
+ 
+   # Random draw of new genotypes under hardy-weinberg conditions
+  N_total <- offsp_aa + offsp_AA + offsp_Aa
   
-  # Random draw of new genotypes under hardy-weinberg conditions
-  N_total <- offsp_aa + offsp_AA + offsp_Aa 
+  #print(c(predicted_freq_aa, predicted_freq_AA, predicted_freq_Aa))
+  #print(N_total)
+  
   genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_aa, predicted_freq_AA, predicted_freq_Aa))
+  
+  #print(genotypes)
+
   
   N_aa_new <- genotypes[1]
   N_AA_new <- genotypes[2]
   N_Aa_new <- genotypes[3]
   
-  
+  #print(c(N_aa_new, N_AA_new, N_Aa_new)) 
   return(c(N_aa_new, N_AA_new, N_Aa_new))
+  }
+  
+  else
+  return(c(0,0,0))
+  
+  
 }
 
 print(simulate_gen(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa))
@@ -111,22 +133,24 @@ simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
   pop_new <- c(N_aa, N_AA, N_Aa)
   
   # run the simulation until generation t_max
-  for (i in 1:t_max+1) {
-    # redefine the current population one generation later
-    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_AA, s_Aa)
-    # add the new population sizes to the output vector
-    pop_vector <- rbind(pop_vector,pop_new)
+  for (i in 1:(t_max+1)) {
     # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
     if (pop_new[1]+pop_new[2]+pop_new[3]>=2*(N_aa+N_AA+N_Aa) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
+    #print(pop_new[1]+pop_new[2]+pop_new[3])
+    # redefine the current population one generation later
+    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_AA, s_Aa)
+    #print(pop_new)
+    # add the new population sizes to the output vector
+    pop_vector <- rbind(pop_vector,pop_new)
   }
   
   # define the row and column names of the output vector
   rownames(pop_vector) <- (0:t_max)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
   colnames(pop_vector) <- c("aa","AA","Aa")
   # return the result
+  #print(pop_vector)
   return(pop_vector)	
 }
-
 
 # Test the function and plot the result
 # set t_max to a value to be used througout
@@ -135,17 +159,9 @@ max_gen <- 1000
 output <- simulate_pop(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, max_gen)
 # show the last few lines of the data table
 print(tail(output))
-# plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
-# determine x axis range 
-x_range <- 0:(length(output[,1])-1)
-# this plots the total population size
-plot(x_range,output[,1]+output[,2]+output[,3],type='l',ylim=c(0,max(output[,1]+output[,2]+output[,3])),xlab = "Generation",ylab = "Population size")
-# add number of wild type individuals
-lines(x_range,output[,1], col="blue")
-# add number of mutant individuals
-lines(x_range,output[,2], col="red")
-# add number of mutant individuals
-lines(x_range,output[,3], col="green")
+
+
+
 ```
 
 
