@@ -62,7 +62,7 @@ First we define the variables and parameters.
 N_aa <- 100
 N_Aa <- 0
 N_AA <- 10
-# Change the order to N_aa, N_Aa, N_AA everywhere
+
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
 s_Aa <- 1.10 # fitness benefit of allel A, equal to sel_coeff
@@ -160,7 +160,19 @@ output <- simulate_pop(N_aa, N_Aa, N_AA, r_aa, s_Aa, s_AA, max_gen)
 # show the last few lines of the data table
 print(tail(output))
 
+### Next time need to plot and see if distribution is right?
 
+# plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
+# determine x axis range 
+x_range <- 0:(length(output[,1])-1)
+# this plots the total population size
+plot(x_range,output[,1]+output[,2]+output[,3],type='l',ylim=c(0,max(output[,1]+output[,2]+output[,3])),xlab = "Generation",ylab = "Population size")
+# add number of wild type individuals
+lines(x_range,output[,1], col="blue")
+# add number of mutant individuals
+lines(x_range,output[,2], col="red")
+# add number of mutant individuals
+lines(x_range,output[,3], col="green")
 
 ```
 
