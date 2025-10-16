@@ -34,25 +34,29 @@ First we define the variables and parameters.
 -   `N_aa` initial population size of the genotype aa
 -   `N_AA` initial population size of the genotype AA
 -   `N_Aa` initial population size of the genotype Aa
--   `w
+-   `r_aa` fitness of genotype aa
+-   `s_AA` fitness of genotype AA
+-   `s_Aa` fitness of genotype Aa
+-   `max_gen`
 
 *Variables we need:*
 
-\- we dont have a mutation rate but a probability of aa becoming aA (dencity dependence)
-
-\- probability of aA becoming AA (dencity dependence)
-
-\- amount of different genotype -\> aa, aA, AA - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added
+-   `offsp_aa` number of offspring of the given genotype
+-   `N_aa_new` number of the given genotype after one generation
+-   `total_gametes` number of all alleles combined
+-   `freq_a` number of the given allele in the population
+-   `predicted_freq_aa` number of the given genotype in the next generation
+-   `t_max` number of generation till extinction/ rescue
 
 *Functions we need:*
 
-\- Function that calculates probabillity for turning into different genotype
+-   `simulate_gen` models one generation step
 
-\- Function that split genotypes into alleles
+
+
 
 ## Simulate one generation of population size change
 
-We want to observe the numbers of wild-type and mutant individuals over time. As first step, we simulate one generation of the population...
 
 ```{r}
 N_aa <- 100
@@ -97,20 +101,7 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
 print(simulate_gen(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa))
 ```
 
-## List of variables and parameters
-
--   $N_a$ current size of the wild-type (a) population (changes over time)
--   $N_A$ current size of the mutant (A) population (changes over time)
--   `N_init_a` initial population size of wild-type population (should be a positive integer)
--   `N_init_A` initial population size of the mutant population (should be a non-negative integer)
--   `decay_rate` detrimental effect of the environment on the wild type (i.e., the wild-type population decays at this rate; should be \>0 to induce potential extinction)
--   `sel_coeff` selective advantage of the mutant over the wild type (should be \>decay_rate to allow for evolutionary rescue)
--   `mut_rate` mutation rate from the wild type to the mutant genotype (should be \>0 and small)
--   `t_max` number of generations after which to stop the simulation (should be an integer \>0; this is not a model parameter but a setting for the simulations). In the code presented here, the simulation stops automatically if the population goes extinct, or if it recovers and exceeds 1.5 times the original total population size, so `t_max` can be set to a large value without creating extremely long simulation times.
-
 ## Simulate a population trajectory
-
-We can now track the dynamics of the population from one generation to another, but this is not enough. We want to follow the population from time 0 until it either is rescued or goes extinct. This is what the following function does.
 
 ```{r}
 simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
@@ -157,20 +148,7 @@ lines(x_range,output[,2], col="red")
 lines(x_range,output[,3], col="green")
 ```
 
-### Questions
 
--   What is the difference between `pop_vector` and `pop_new`?
--   What is the condition that breaks the loop good for? What are its disadvantages?
--   What does the function `tail` do?
-
-## A small analysis
-
-As you can see if you simulate and plot the output several times, there is a lot of stochasticity/variation in the outcome. Therefore, to get interpretable results, we have to run the simulation many times and summarize the outcome depending on the question of our study. Here I am showing an example in which we record the time and the value of the lowest population size (or the time of extinction, if the population size eventually goes to 0). Usually, we want to study this for a range of model parameters; here I am varying the decay rate and the selection coefficient. Other (maybe more interesting) features to study would be the following:
-
--   rescue probability dependent on initial frequency and selection coefficient
--   time at which the rescue mutation occurs first if it rescues, vs. if it doesn't rescue, dependent on initial population size and mutation rate
--   time until the population has recovered in case it becomes rescued, dependent on mutation rate and selection coefficient
--   ...
 
 ```{r}
 # set some parameters to fixed values
@@ -219,12 +197,3 @@ colnames(data_table) <- c("r","s","min_gen","no_min")
 print(head(data_table))
 ```
 
-### Questions
-
--   Why does this code block run much more slowly than the others?
--   Why is it useful to define the parameters at the beginning (e.g. `init_a=100`) and use their names rather than the numbers throughout the rest of the code?
--   What does the function `which` do?
-
-## Next steps
-
-So, where do you go from here? Of course you won't just stare at these tables (at least not forever). Visualization would be a good step to see how the minimum population size varies with the decay rate and the selection coefficient. And you might want to include only the cases in which rescue happens, and also extract the rescue probability in parallel. However, the idea is that you pick a question that you find (more) interesting and implement modified versions of this code to address your question of choice.
