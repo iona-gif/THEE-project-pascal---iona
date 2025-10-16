@@ -10,42 +10,21 @@ output:
 ---
 
 ## Simulating evolutionary rescue in discrete time
-Idea: Inbreed depression in population with rezessiv disease (aa) that leads to lower fitness and is therefore declining in population size. Goal is to rescue population with hybrids. How many healthy individuals are needed to rescue the population. only healthy (AA) are added, 
-Assumptions:
-  - starting population is homozygot for the disease (aa)
-  - healthy added individuals are homozygot without the disease (AA)
-  - second generation can mate with sick individuum or hybrid
-
-Question: How many individuals have to be introduced at time x to rescue a homozygot population with low fitness (inbreed depression)?
-
 
 In this notebook, we are implementing simulations of evolutionary rescue by a single mutation in discrete time, as discussed and analyzed in the work by Orr & Unckless. The model is as follows: a haploid population starts with a given number of wild-type and mutant individuals. Because of a sudden environmental change, the wild type is unfit and declines in the new environment. The mutant is beneficial and can survive and expand in the new environment, but it starts at a low (or zero) frequency in the total population. In order to rescue the population, it has to outcompete the wild type. If the mutant is not present at time 0, it has to appear through mutation and then spread in the population before extinction occurs.
 
+**Idea:** Inbreed depression in population with rezessiv disease (aa) that leads to lower fitness and is therefore declining in population size. Goal is to rescue population with hybrids. How many healthy individuals are needed to rescue the population. only healthy (AA) are added,
+
+**Assumptions:** - starting population is homozygot for the disease (aa) - healthy added individuals are homozygot without the disease (AA) - second generation can mate with sick individuum or hybrid
+
+**Question:** How many individuals have to be introduced at time x to rescue a homozygot population with low fitness (inbreed depression)?
 
 =======
-testtesttest
 
+#Notes First we define the variables and parameters. Parameters we need: - initial Population size with genotype aa -\> N0_aa - initial Population size with genotype AA -\> N0_AA - fitness disadvantage of heterozygotes aa -\> decay.rate_aa - Variables we need: - we dont have a mutation rate but a probability of aa becoming aA (dencity dependence) - probability of aA becoming AA (dencity dependence) - amount of different genotype -\> aa, aA, AA - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added
 
-#hardy equilibrium 1 = p^2 +2pq +q^2
+Functions we need: - Function that calculates probabillity for turning into different genotype - Function that split genotypes into alleles
 
-
-#Notes
-First we define the variables and parameters.
-Parameters we need:
-  - initial Population size with genotype aa -> N0_aa
-  - initial Population size with genotype AA -> N0_AA
-  - fitness disadvantage of heterozygotes aa -> decay.rate_aa
-  - 
-Variables we need:
-  - we dont have a mutation rate but a probability of aa becoming aA (dencity dependence)
-  - probability of aA becoming AA (dencity dependence)
-  - amount of different genotype -> aa, aA, AA
-  - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added 
-  
-Functions we need:
-  - Function that calculates probabillity for turning into different genotype
-
-testtesttest
 ```{r}
 N_aa <- 100
 N_AA <- 10
@@ -53,54 +32,38 @@ N_Aa <- 0
 
 w_aa <- 0.1 # fitness malus of aa allel comb. equal to decay_rate
 w_Aa_AA <- 0.15 # fitness benefit of allel A, equal to sel_coeff
-mut_rate <- 0.25
 
 # --- Simulation of generation with three genotypes ---
-simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate) {
-  # Effektive Fortpflanzung (unter Berücksichtigung von decay_rate und Fitness)
+simulate_one_gen <- function(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA) {
+  # Reproduction with fitness malus/benefit
+  offsp_aa <- rpois(1, N_aa * (1-w_aa))
   offsp_AA <- rpois(1, N_AA * (1-w_aa+w_Aa_AA))
   offsp_Aa <- rpois(1, N_Aa * (1-w_aa+w_Aa_AA))
-  offsp_aa <- rpois(1, N_aa * (1-w_aa))
   
   # Total numbeer of gamets proportional to the frequency of alleles A and a
   total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
   freq_A <- (2 * offsp_AA + offsp_Aa) / total_gametes
   freq_a <- 1 - freq_A
   
-  # Change (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes)
-  # 1 = p^2 + 2pq + q^2
+  # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
   predicted_freq_AA <- (freq_A / total_gametes)^2
   predicted_freq_aa <- (freq_a / total_gametes)^2
   predicted_freq_aA <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
   
-  ### here
   
-  #freq_A_mut <- freq_A * (1 - mut_rate) + freq_a * mut_rate
-  #freq_a_mut <- 1 - freq_A_mut
-  
-  # Random draw of new genotypes
+  # Random draw of new genotypes under hardy-weinberg conditions
   N_total <- offsp_AA + offsp_Aa + offsp_aa
   genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_AA, predicted_freq_aA, predicted_freq_aa))
   
   N_AA_new <- genotypes[1]
   N_Aa_new <- genotypes[2]
   N_aa_new <- genotypes[3]
-
-  # Zufällige Neukombination (Hardy-Weinberg nach Selektion & Mutation)
-  #N_total <- offsp_AA + offsp_Aa + offsp_aa
-  #N_AA_new <- rbinom(1, N_total, prob = freq_A_mut^2)
-  #N_Aa_new <- rbinom(1, N_total - N_AA_new, prob = 2 * freq_A_mut * freq_a_mut / (1 - freq_A_mut^2))
-  #N_aa_new <- N_total - N_AA_new - N_Aa_new
   
   return(c(N_AA_new, N_Aa_new, N_aa_new))
 }
 
-print(simulate_one_gen(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate))
+print(simulate_one_gen(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA))
 ```
-
-#Notes First we define the variables and parameters. Parameters we need: - initial Population size with genotype aa -\> N0_aa - initial Population size with genotype AA -\> N0_AA - fitness disadvantage of heterozygotes aa -\> decay.rate_aa - Variables we need: - we dont have a mutation rate but a probability of aa becoming aA (dencity dependence) - probability of aA becoming AA (dencity dependence) - amount of different genotype -\> aa, aA, AA - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added
-
-Functions we need: - Function that calculates probabillity for turning into different genotype - p(Aa= ) - g1 -\> \<90 aa, 10 Aa - g2 -\>
 
 ## List of variables and parameters
 
