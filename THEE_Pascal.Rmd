@@ -56,7 +56,7 @@ We want to observe the numbers of wild-type and mutant individuals over time. As
 
 ```{r}
 N_aa <- 100
-N_AA <- 10
+N_AA <- 0
 N_Aa <- 0
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
@@ -73,8 +73,8 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
     
   # Total numbeer of gamets proportional to the frequency of alleles A and a
   total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
-  freq_A <- (2 * offsp_AA + offsp_Aa) - (2 * offsp_aa)
-  freq_a <- 1 - freq_A
+  freq_A <- (2 * offsp_AA + offsp_Aa) 
+  freq_a <- total_gametes - freq_A
   
   # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
   predicted_freq_aa <- (freq_a / total_gametes)^2
