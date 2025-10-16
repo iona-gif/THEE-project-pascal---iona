@@ -1,0 +1,230 @@
+---
+title: "Basic model of evolutionary rescue in discrete time"
+author: "Iona & Pascal"
+date: "2025-10-15"
+
+
+output:
+  html_document:
+    df_print: paged
+---
+
+## Simulating evolutionary rescue in discrete time
+
+In this notebook, we are implementing simulations of evolutionary rescue by introducing an other species. The model is as follows: a diploid homozygot population (aa) is dying of, due to a recessive fitness disadvantage on a. At time x a few homozygot individuals (AA) are introduced to save the population by hybridization.
+
+**Idea:** Inbreed depression in population with recessive disease (aa) that leads to lower fitness and is therefore declining in population size. Goal is to rescue population with hybrids. How many healthy individuals are needed to rescue the population. only healthy (AA) are added,
+
+**Assumptions:**
+
+\- starting population is homozygot for the disease (aa)
+
+\- healthy added individuals are homozygot without the disease (AA)
+
+\- second generation can mate with sick individual or hybrid
+
+**Question:** How many individuals have to be introduced at time x to rescue a homozygot population with low fitness (inbreed depression)?
+
+=======
+
+First we define the variables and parameters.
+
+*Parameters we need:*
+
+-   `N_aa` initial population size of the genotype aa
+-   `N_AA` initial population size of the genotype AA
+-   `N_Aa` initial population size of the genotype Aa
+-   `w
+
+*Variables we need:*
+
+\- we dont have a mutation rate but a probability of aa becoming aA (dencity dependence)
+
+\- probability of aA becoming AA (dencity dependence)
+
+\- amount of different genotype -\> aa, aA, AA - new generation = offspring & new gained same genotype, -lost genotype, fitness disadvantage added
+
+*Functions we need:*
+
+\- Function that calculates probabillity for turning into different genotype
+
+\- Function that split genotypes into alleles
+
+## Simulate one generation of population size change
+
+We want to observe the numbers of wild-type and mutant individuals over time. As first step, we simulate one generation of the population...
+
+```{r}
+N_aa <- 100
+N_AA <- 10
+N_Aa <- 0
+
+r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
+s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
+s_Aa <- 1.10 # fitness benefit of allel A, equal to sel_coeff
+
+# --- Simulation of one generation with three genotypes ---
+simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
+
+  # Reproduction with fitness malus/benefit
+  offsp_aa <- rpois(1, N_aa * (1-r_aa))
+  offsp_AA <- rpois(1, N_AA * s_AA)
+  offsp_Aa <- rpois(1, N_Aa * s_Aa)
+    
+  # Total numbeer of gamets proportional to the frequency of alleles A and a
+  total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
+  freq_A <- (2 * offsp_AA + offsp_Aa) - (2 * offsp_aa)
+  freq_a <- 1 - freq_A
+  
+  # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
+  predicted_freq_aa <- (freq_a / total_gametes)^2
+  predicted_freq_AA <- (freq_A / total_gametes)^2
+  predicted_freq_Aa <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
+  
+  
+  # Random draw of new genotypes under hardy-weinberg conditions
+  N_total <- offsp_aa + offsp_AA + offsp_Aa 
+  genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_aa, predicted_freq_AA, predicted_freq_Aa))
+  
+  N_aa_new <- genotypes[1]
+  N_AA_new <- genotypes[2]
+  N_Aa_new <- genotypes[3]
+  
+  
+  return(c(N_aa_new, N_AA_new, N_Aa_new))
+}
+
+print(simulate_gen(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa))
+```
+
+## List of variables and parameters
+
+-   $N_a$ current size of the wild-type (a) population (changes over time)
+-   $N_A$ current size of the mutant (A) population (changes over time)
+-   `N_init_a` initial population size of wild-type population (should be a positive integer)
+-   `N_init_A` initial population size of the mutant population (should be a non-negative integer)
+-   `decay_rate` detrimental effect of the environment on the wild type (i.e., the wild-type population decays at this rate; should be \>0 to induce potential extinction)
+-   `sel_coeff` selective advantage of the mutant over the wild type (should be \>decay_rate to allow for evolutionary rescue)
+-   `mut_rate` mutation rate from the wild type to the mutant genotype (should be \>0 and small)
+-   `t_max` number of generations after which to stop the simulation (should be an integer \>0; this is not a model parameter but a setting for the simulations). In the code presented here, the simulation stops automatically if the population goes extinct, or if it recovers and exceeds 1.5 times the original total population size, so `t_max` can be set to a large value without creating extremely long simulation times.
+
+## Simulate a population trajectory
+
+We can now track the dynamics of the population from one generation to another, but this is not enough. We want to follow the population from time 0 until it either is rescued or goes extinct. This is what the following function does.
+
+```{r}
+simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
+  # Create the vector in which to save the results
+  pop_vector <- c(N_aa, N_AA, N_Aa)
+  # initiate the variables
+  pop_new <- c(N_aa, N_AA, N_Aa)
+  
+  # run the simulation until generation t_max
+  for (i in 1:t_max+1) {
+    # redefine the current population one generation later
+    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_AA, s_Aa)
+    # add the new population sizes to the output vector
+    pop_vector <- rbind(pop_vector,pop_new)
+    # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
+    if (pop_new[1]+pop_new[2]+pop_new[3]>=2*(N_aa+N_AA+N_Aa) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
+  }
+  
+  # define the row and column names of the output vector
+  rownames(pop_vector) <- (0:t_max)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
+  colnames(pop_vector) <- c("aa","AA","Aa")
+  # return the result
+  return(pop_vector)	
+}
+
+
+# Test the function and plot the result
+# set t_max to a value to be used througout
+max_gen <- 1000
+# create your simulation data
+output <- simulate_pop(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, max_gen)
+# show the last few lines of the data table
+print(tail(output))
+# plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
+# determine x axis range 
+x_range <- 0:(length(output[,1])-1)
+# this plots the total population size
+plot(x_range,output[,1]+output[,2]+output[,3],type='l',ylim=c(0,max(output[,1]+output[,2]+output[,3])),xlab = "Generation",ylab = "Population size")
+# add number of wild type individuals
+lines(x_range,output[,1], col="blue")
+# add number of mutant individuals
+lines(x_range,output[,2], col="red")
+# add number of mutant individuals
+lines(x_range,output[,3], col="green")
+```
+
+### Questions
+
+-   What is the difference between `pop_vector` and `pop_new`?
+-   What is the condition that breaks the loop good for? What are its disadvantages?
+-   What does the function `tail` do?
+
+## A small analysis
+
+As you can see if you simulate and plot the output several times, there is a lot of stochasticity/variation in the outcome. Therefore, to get interpretable results, we have to run the simulation many times and summarize the outcome depending on the question of our study. Here I am showing an example in which we record the time and the value of the lowest population size (or the time of extinction, if the population size eventually goes to 0). Usually, we want to study this for a range of model parameters; here I am varying the decay rate and the selection coefficient. Other (maybe more interesting) features to study would be the following:
+
+-   rescue probability dependent on initial frequency and selection coefficient
+-   time at which the rescue mutation occurs first if it rescues, vs. if it doesn't rescue, dependent on initial population size and mutation rate
+-   time until the population has recovered in case it becomes rescued, dependent on mutation rate and selection coefficient
+-   ...
+
+```{r}
+# set some parameters to fixed values
+init_a <- 100
+init_A <- 0
+m_rate <- 0.001
+max_gen <- 1000
+# determine how often to run the simulation for each set of parameters
+no_replicates <- 100
+
+# set parameters to vary
+s_values <- c(0.2,0.3,0.4)
+r_values <- c(0.05,0.1,0.15)
+
+# initialize data table - where to collect the results
+data_table <- c()
+# run the simulation across all chosen parameters
+# loop over decay rates
+for(rval in r_values){
+  # loop over selection coefficients
+  for(sval in s_values){
+    # different way of running many simulations: make replicates using "repeat" function with a counter i
+    # reset counter
+    i<-1
+    repeat {
+      # increase counter by one
+      i<-i+1
+      # run the simulation once
+      one_run <- simulate_pop(init_a,init_A,rval,sval,m_rate,max_gen)
+      # determine total population sizes
+      total_size <- one_run[,1]+one_run[,2]
+      # determine minimum population size
+      min_size <- min(total_size)
+      # determine (first) generation at which this population size occurred
+      min_gen <- as.numeric(which(total_size==min_size)[1])
+      # enter the data into the table
+      data_table <- rbind(data_table,c(rval,sval,min_gen,min_size)) # note that we add the varying parameters (decay rate and selection coefficient) to the table too
+      # stop the repeated computation after no_replicates times
+      if(i>no_replicates) break
+    }
+  }
+}
+# define column names of data table
+colnames(data_table) <- c("r","s","min_gen","no_min")
+# show the first lines of the output
+print(head(data_table))
+```
+
+### Questions
+
+-   Why does this code block run much more slowly than the others?
+-   Why is it useful to define the parameters at the beginning (e.g. `init_a=100`) and use their names rather than the numbers throughout the rest of the code?
+-   What does the function `which` do?
+
+## Next steps
+
+So, where do you go from here? Of course you won't just stare at these tables (at least not forever). Visualization would be a good step to see how the minimum population size varies with the decay rate and the selection coefficient. And you might want to include only the cases in which rescue happens, and also extract the rescue probability in parallel. However, the idea is that you pick a question that you find (more) interesting and implement modified versions of this code to address your question of choice.
