@@ -61,23 +61,23 @@ First we define the variables and parameters.
 ```{r}
 N_aa <- 100
 N_Aa <- 0
-N_AA <- 5
+N_AA <- 10
 # Change the order to N_aa, N_Aa, N_AA everywhere
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
-s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
 s_Aa <- 1.10 # fitness benefit of allel A, equal to sel_coeff
+s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
 
 # --- Simulation of one generation with three genotypes ---
-simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
+simulate_gen <- function(N_aa, N_Aa, N_AA, r_aa, s_Aa, s_AA) {
 
   # Reproduction with fitness malus/benefit
   offsp_aa <- rpois(1, N_aa * (1-r_aa))
-  offsp_AA <- rpois(1, N_AA * s_AA)
   offsp_Aa <- rpois(1, N_Aa * s_Aa)
-    
+  offsp_AA <- rpois(1, N_AA * s_AA)  
+  
   # Total numbeer of gamets proportional to the frequency of alleles A and a
-  total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
+  total_gametes <- 2 * (offsp_aa + offsp_Aa + offsp_AA)
   freq_A <- (2 * offsp_AA + offsp_Aa) 
   freq_a <- total_gametes - freq_A
   
@@ -89,29 +89,29 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
   
   # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
   predicted_freq_aa <- (freq_a/total_gametes)^2
-  predicted_freq_AA <- (freq_A/total_gametes)^2
   predicted_freq_Aa <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
+  predicted_freq_AA <- (freq_A/total_gametes)^2
   
   #print(predicted_freq_Aa)
   #print("PROBLEM")
  
    # Random draw of new genotypes under hardy-weinberg conditions
-  N_total <- offsp_aa + offsp_AA + offsp_Aa
+  N_total <- offsp_aa + offsp_Aa + offsp_AA
   
-  #print(c(predicted_freq_aa, predicted_freq_AA, predicted_freq_Aa))
+  #print(c(predicted_freq_aa, predicted_freq_Aa, predicted_freq_AA))
   #print(N_total)
   
-  genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_aa, predicted_freq_AA, predicted_freq_Aa))
+  genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_aa, predicted_freq_Aa, predicted_freq_AA))
   
   #print(genotypes)
 
   
   N_aa_new <- genotypes[1]
-  N_AA_new <- genotypes[2]
-  N_Aa_new <- genotypes[3]
+  N_Aa_new <- genotypes[2]
+  N_AA_new <- genotypes[3]
   
   #print(c(N_aa_new, N_AA_new, N_Aa_new)) 
-  return(c(N_aa_new, N_AA_new, N_Aa_new))
+  return(c(N_aa_new, N_Aa_new, N_AA_new))
   }
   
   else
@@ -120,25 +120,25 @@ simulate_gen <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa) {
   
 }
 
-print(simulate_gen(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa))
+print(simulate_gen(N_aa, N_Aa, N_AA, r_aa, s_Aa, s_AA))
 ```
 
 ## Simulate a population trajectory
 
 ```{r}
-simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
+simulate_pop <- function(N_aa, N_Aa, N_AA, r_aa, s_Aa, s_AA, t_max) {
   # Create the vector in which to save the results
-  pop_vector <- c(N_aa, N_AA, N_Aa)
+  pop_vector <- c(N_aa, N_Aa, N_AA)
   # initiate the variables
-  pop_new <- c(N_aa, N_AA, N_Aa)
+  pop_new <- c(N_aa, N_Aa, N_AA)
   
   # run the simulation until generation t_max
   for (i in 1:(t_max+1)) {
     # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
-    if (pop_new[1]+pop_new[2]+pop_new[3]>=2*(N_aa+N_AA+N_Aa) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
+    if (pop_new[1]+pop_new[2]+pop_new[3]>=2*(N_aa+N_Aa+N_AA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
     #print(pop_new[1]+pop_new[2]+pop_new[3])
     # redefine the current population one generation later
-    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_AA, s_Aa)
+    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_Aa, s_AA)
     #print(pop_new)
     # add the new population sizes to the output vector
     pop_vector <- rbind(pop_vector,pop_new)
@@ -146,7 +146,7 @@ simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
   
   # define the row and column names of the output vector
   rownames(pop_vector) <- (0:t_max)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
-  colnames(pop_vector) <- c("aa","AA","Aa")
+  colnames(pop_vector) <- c("aa","Aa","AA")
   # return the result
   #print(pop_vector)
   return(pop_vector)	
@@ -156,7 +156,7 @@ simulate_pop <- function(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, t_max) {
 # set t_max to a value to be used througout
 max_gen <- 1000
 # create your simulation data
-output <- simulate_pop(N_aa, N_AA, N_Aa, r_aa, s_AA, s_Aa, max_gen)
+output <- simulate_pop(N_aa, N_Aa, N_AA, r_aa, s_Aa, s_AA, max_gen)
 # show the last few lines of the data table
 print(tail(output))
 
