@@ -21,55 +21,13 @@ Question: How many individuals have to be introduced at time x to rescue a homoz
 
 In this notebook, we are implementing simulations of evolutionary rescue by a single mutation in discrete time, as discussed and analyzed in the work by Orr & Unckless. The model is as follows: a haploid population starts with a given number of wild-type and mutant individuals. Because of a sudden environmental change, the wild type is unfit and declines in the new environment. The mutant is beneficial and can survive and expand in the new environment, but it starts at a low (or zero) frequency in the total population. In order to rescue the population, it has to outcompete the wild type. If the mutant is not present at time 0, it has to appear through mutation and then spread in the population before extinction occurs.
 
-<<<<<<< HEAD
+
 =======
 testtesttest
 
 
-
-
-
-
-
 #hardy equilibrium 1 = p^2 +2pq +q^2
 
-N_aa <- 100
-N_AA <- 10
-N_Aa <- 0
-
-w_aa <- 0.5
-w_Aa <- 0.9
-w_AA <- 1
-mut_rate <- 0.25
-
-# --- Simulation einer Generation mit drei Genotypen ---
-simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate) {
-  # Effektive Fortpflanzung (unter Berücksichtigung von decay_rate und Fitness)
-  offsp_AA <- rpois(1, N_AA * w_AA)
-  offsp_Aa <- rpois(1, N_Aa * w_Aa)
-  offsp_aa <- rpois(1, N_aa * w_aa)
-  
-  # Gesamtzahl der Gameten proportional zur Häufigkeit der Allele A und a
-  total_gametes <- 2 * (offsp_AA + offsp_Aa + offsp_aa)
-  freq_A <- (2 * offsp_AA + offsp_Aa) / total_gametes
-  freq_a <- 1 - freq_A
-  
-  # Mutation (A -> a und a -> A)
-  freq_A_mut <- freq_A * (1 - mut_rate) + freq_a * mut_rate
-  freq_a_mut <- 1 - freq_A_mut
-  
-  # Zufällige Neukombination (Hardy-Weinberg nach Selektion & Mutation)
-  N_total <- offsp_AA + offsp_Aa + offsp_aa
-  N_AA_new <- rbinom(1, N_total, prob = freq_A_mut^2)
-  N_Aa_new <- rbinom(1, N_total - N_AA_new, prob = 2 * freq_A_mut * freq_a_mut / (1 - freq_A_mut^2))
-  N_aa_new <- N_total - N_AA_new - N_Aa_new
-  
-  return(c(N_AA_new, N_Aa_new, N_aa_new))
-}
-
-
-
->>>>>>> 96dd4a512028f7873ba93d5c4843b6603ab91630
 
 #Notes
 First we define the variables and parameters.
@@ -93,15 +51,14 @@ N_aa <- 100
 N_AA <- 10
 N_Aa <- 0
 
-w_aa <- 0.9
-w_Aa <- 1
-w_AA <- 1
+w_aa <- 0.1 # fitness malus of aa allel comb. equal to decay_rate
+w_Aa_AA <- 0.2 # fitness benefit of allel A, equal to sel_coeff
 mut_rate <- 0.25
 
 # --- Simulation einer Generation mit drei Genotypen ---
-simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa) {
+simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate) {
   # Effektive Fortpflanzung (unter Berücksichtigung von decay_rate und Fitness)
-  offsp_AA <- rpois(1, N_AA * w_AA)
+  offsp_AA <- rpois(1, N_AA * (w_AA)
   offsp_Aa <- rpois(1, N_Aa * w_Aa)
   offsp_aa <- rpois(1, N_aa * w_aa)
   
