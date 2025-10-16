@@ -33,10 +33,20 @@ N_Aa <- 0
 w_aa <- 0.1 # fitness malus of aa allel comb. equal to decay_rate
 w_Aa_AA <- 0.15 # fitness benefit of allel A, equal to sel_coeff
 
+<<<<<<< HEAD
+# --- Simulation einer Generation mit drei Genotypen ---
+simulate_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa) {
+=======
 # --- Simulation of generation with three genotypes ---
+<<<<<<< HEAD
 simulate_one_gen <- function(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA) {
   # Reproduction with fitness malus/benefit
   offsp_aa <- rpois(1, N_aa * (1-w_aa))
+=======
+simulate_one_gen <- function(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate) {
+>>>>>>> 2daf5c81ce54e410788aa3b743f2b9b1b37a0938
+  # Effektive Fortpflanzung (unter Berücksichtigung von decay_rate und Fitness)
+>>>>>>> 31062caef5d35926b3a1949e1e4067c1b836703f
   offsp_AA <- rpois(1, N_AA * (1-w_aa+w_Aa_AA))
   offsp_Aa <- rpois(1, N_Aa * (1-w_aa+w_Aa_AA))
   
@@ -62,7 +72,11 @@ simulate_one_gen <- function(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA) {
   return(c(N_AA_new, N_Aa_new, N_aa_new))
 }
 
+<<<<<<< HEAD
 print(simulate_one_gen(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA))
+=======
+print(simulate_gen(N_AA, N_Aa, N_aa, w_AA, w_Aa, w_aa, mut_rate))
+>>>>>>> 31062caef5d35926b3a1949e1e4067c1b836703f
 ```
 
 ## List of variables and parameters
@@ -81,7 +95,7 @@ print(simulate_one_gen(N_aa, N_AA, N_Aa, w_aa, w_Aa_AA))
 We want to observe the numbers of wild-type and mutant individuals over time. As first step, we simulate one generation of the population. At time $t$, the population has $N_a$ wild-type individuals and $N_A$ mutant individuals. First, these reproduce. This is modeled by drawing a Poisson random variable according to the expected absolute number $N_a \cdot (1-r)$ of wild-type individuals, where $r$ is the decay rate of the wild type, and $N_A \cdot (1-r+s)$ of mutant individuals, where $s$ is the selective advantage of the mutant over the wild time. Then mutation from $a$ to $A$ occurs as a Poisson random variable according to the given mutation rate. This defines the composition of the population at time $t+1$.
 
 ```{r}
-simulate_one_gen <- function(N_a, N_A, decay_rate, sel_coeff, mut_rate) {
+simulate_gen <- function(N_a, N_A, decay_rate, sel_coeff, mut_rate) {
   # draw offspring according to Poisson distribution
   offsp_a <- rpois(1, N_a * (1-decay_rate))
   offsp_A <- rpois(1, N_A * (1-decay_rate+sel_coeff))
@@ -110,20 +124,20 @@ print(simulate_one_gen(100,0,0.1,0.2,0.01))
 We can now track the dynamics of the population from one generation to another, but this is not enough. We want to follow the population from time 0 until it either is rescued or goes extinct. This is what the following function does.
 
 ```{r}
-simulate_pop <- function(N_init_a, N_init_A, decay_rate, sel_coeff, mut_rate, t_max) {
+simulate_pop <- function(N_aa, N_Aa, N_AA, decay_rate, sel_coeff, mut_rate, t_max) {
   # Create the vector in which to save the results
-  pop_vector <- c(N_init_a, N_init_A)
+  pop_vector <- c(N_aa, N_Aa, N_AA)
   # initiate the variables
-  pop_new <- c(N_init_a, N_init_A)
+  pop_new <- c(N_aa, N_Aa, N_AA)
   
   # run the simulation until generation t_max
   for (i in 1:t_max+1) {
     # redefine the current population one generation later
-    pop_new <- simulate_one_gen(pop_new[1],pop_new[2], decay_rate, sel_coeff, mut_rate)
+    pop_new <- simulate_gen(pop_new[1],pop_new[2], decay_rate, sel_coeff, mut_rate)
     # add the new population sizes to the output vector
     pop_vector <- rbind(pop_vector,pop_new)
     # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
-    if (pop_new[1]+pop_new[2]>=1.5*(N_init_a+ N_init_A) | pop_new[1]+pop_new[2]==0) break
+    if (pop_new[1]+pop_new[2]>=1.5*(N_aa+N_Aa+N_AA) | pop_new[1]+pop_new[2]==0) break
   }
   
   # define the row and column names of the output vector
