@@ -136,7 +136,7 @@ simulate_pop <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
   
   # run the simulation until generation t_max
   for (i in 1:(t_max+1)) {
-    # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
+    # condition to stop the simulation before t_max: either the population exceeds 10 times the original population size, or it goes extinct
     if (pop_new[1]+pop_new[2]+pop_new[3]>=10*(N_aa+N_aA+N_AA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
     #print(pop_new[1]+pop_new[2]+pop_new[3])
     # redefine the current population one generation later
