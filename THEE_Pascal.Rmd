@@ -32,11 +32,13 @@ First we define the variables and parameters.
 *Parameters we need:*
 
 -   `N_aa` initial population size of the genotype aa
+-   `N_aA` initial population size of the genotype aA
 -   `N_AA` initial population size of the genotype AA
--   `N_Aa` initial population size of the genotype Aa
+
 -   `r_aa` fitness of genotype aa
+-   `s_aA` fitness of genotype aA
 -   `s_AA` fitness of genotype AA
--   `s_Aa` fitness of genotype Aa
+
 -   `max_gen`
 
 *Variables we need:*
@@ -60,8 +62,8 @@ First we define the variables and parameters.
 
 ```{r}
 N_aa <- 100
-N_Aa <- 0
-N_AA <- 10
+N_aA <- 0
+N_AA <- 3
 
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
