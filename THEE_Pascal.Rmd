@@ -139,6 +139,7 @@ simulate_pop <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
     # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
     A<- print(pop_new)
     
+    
     if (pop_new[1]+pop_new[2]+pop_new[3]>=101*(N_aa+N_aA+N_AA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
     #print(pop_new[1]+pop_new[2]+pop_new[3])
     # redefine the current population one generation later
@@ -180,103 +181,60 @@ lines(x_range,output[,3], col="green")  #AA
 
 ```
 
-Error: if schleife nimmt summe und nicht wert an position n für weitermachen in neuem teil. 
+Frage: was ist mit totaler populations grösse; frequenz von hybrid; etc.
 
 ```{r}
 # set some parameters to fixed values
 N_aA <- 0
-
 r_aa <- 0.2
 s_AA <- 1.1
-
-
 t_max <- 10
 # determine how often to run the simulation for each set of parameters
 no_replicates <- 10
 
 # set parameters to vary
-N_aa <- c(10,100,50,40)
-N_AA <- c(2,5,7,10)
-s_aA <- c(1.1,1.2,1,0.9) 
+N_aa_vector <- c(10,100,50,40)
+N_AA_vector <- c(2,5,7,10)
+s_aA_vector <- c(1.1,1.2,1,0.9) 
 
+#initialize data table - where to collect the results
+data_table <- c()
 
-
-#new function to simulate pop size; because of error before -> fix for better understanding
-
-simulate_pop_multi <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
-  # Create the vector in which to save the results
-  pop_vector <- c(N_aa, N_aA, N_AA)
-  # initiate the variables
-  pop_new <- c(N_aa, N_aA, N_AA)
-  
-  # run the simulation until generation t_max
-  for (i in 1:(t_max+1)) {
-    # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
-    A<- print(pop_new)
-    
-    if (pop_new[1]+pop_new[2]+pop_new[3]>=101*(Naa+NAA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
-    #print(pop_new[1]+pop_new[2]+pop_new[3])
-    # redefine the current population one generation later
-    pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_aA, s_AA)
-    #print(pop_new)
-    # add the new population sizes to the output vector
-    pop_vector <- rbind(pop_vector,pop_new)
-  }
-  
-  # define the row and column names of the output vector
-  rownames(pop_vector) <- (0:t_max)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
-  colnames(pop_vector) <- c("aa","aA","AA")
-  # return the result
-  #print(pop_vector)
-  return(pop_vector)	
-}
-
-
-
-
-####start of excercise 3
-
-# initialize data table - where to collect the results
-data_table <- data.frame(array(NA, dim = c(0,5), dimnames = list(c(),c())))
 # run the simulation across all chosen parameters
-# loop over decay rates
-for(Naa in N_aa){
-  # loop over selection coefficients
-  for(NAA in N_AA){
-    
-    for(saA in s_aA){
-       # different way of running many simulations: make replicates using "repeat" function with a counter i
-    # reset counter
+# loop over starting pop size of aa
+for(N_aa in N_aa_vector){
+  # loop over starting pop size of AA
+  for(N_AA in N_AA_vector){
+    # loop over fitness of hybrid
+    for(s_aA in s_aA_vector){
+       #reset counter for no_replicates to 1
       i<-1
       repeat {
         # increase counter by one
         i<-i+1
         # run the simulation once
-        one_run <- simulate_pop_multi(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
+        one_run <- simulate_pop(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
         
-        cat("coment one run:", one_run, "\n")
         # determine total population sizes
         total_size <- one_run[,1]+one_run[,2]
-        cat("coment total size:", total_size, "\n")
+        
         # determine minimum population size
         min_size <- min(total_size)
-         cat("coment min size:", min_size, "\n")
         # determine (first) generation at which this population size occurred
         min_gen <- as.numeric(which(total_size==min_size)[1])
-        cat("coment min gen:", min_gen, "\n")
         # enter the data into the table
         
-        data_table <- rbind(data_table,data.frame(c(Naa,NAA,saA,min_gen,min_size))) # note that we add the varying parameters (decay rate and selection coefficient) to the table too
+        data_table <- rbind(data_table,data.frame(N_aa=N_aa, N_aA=N_aA, N_AA=N_AA,  min_gen = min_gen, min_size = min_size)) # note that we add the varying parameters (decay rate and selection coefficient) to the table too
         # stop the repeated computation after no_replicates times
-         cat("coment data table:", data_table, "\n")
+        
         if(i>no_replicates) break
         }
       }
   }
 }
 # define column names of data table
-#colnames(data_table) <- c("r","s","min_gen","no_min")
+colnames(data_table) <- c("N_aa","N_aA", "s_aA","min_gen","min_size")
 # show the first lines of the output
-#print(head(data_table))
+print(head(data_table))
 ```
 
