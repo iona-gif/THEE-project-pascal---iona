@@ -63,7 +63,7 @@ First we define the variables and parameters.
 ```{r}
 N_aa <- 100
 N_aA <- 0
-N_AA <- 3
+N_AA <- 5
 
 
 r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
@@ -150,7 +150,7 @@ simulate_pop <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
   }
   
   # define the row and column names of the output vector
-  rownames(pop_vector) <- (0:t_max)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
+  rownames(pop_vector) <- (0:t_max+1)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
   colnames(pop_vector) <- c("aa","aA","AA")
   # return the result
   #print(pop_vector)
@@ -183,22 +183,31 @@ lines(x_range,output[,3], col="green")  #AA
 
 Frage: was ist mit totaler populations grösse; frequenz von hybrid; etc.
 
+Ziel: drei parameter pro dings -> 3x3 graphen die xdurchläufe zeigen
+brauchen: jeder durchlauf der verlauf der funktion wie im teil 2; pro parameter kombination zusammen nehmen
+
 ```{r}
 # set some parameters to fixed values
 N_aA <- 0
 r_aa <- 0.2
 s_AA <- 1.1
-t_max <- 10
+t_max <- 100
 # determine how often to run the simulation for each set of parameters
 no_replicates <- 10
 
 # set parameters to vary
-N_aa_vector <- c(10,100,50,40)
-N_AA_vector <- c(2,5,7,10)
-s_aA_vector <- c(1.1,1.2,1,0.9) 
+N_aa_vector <- c(100, 50, 20)
+N_AA_vector <- c(10, 5, 2)
+s_aA_vector <- c(1, 1.1, 1.2) 
 
-#initialize data table - where to collect the results
-data_table <- c()
+
+
+data_table <- data.frame(array(NA,dim=c(0,8), dimnames=list(c(), c(paste0(c("N_aa","N_aA", "N_AA","min_gen","min_size","N_aa_str_pop","N_AA_str_pop","s_aA_fit_hybrid"),"_results")))))
+
+
+result_one_loop <- data.frame(array(NA,dim=c(1,8), dimnames=list(c(), c(paste0(c("N_aa","N_aA", "N_AA","min_gen","min_size","N_aa_str_pop","N_AA_str_pop","s_aA_fit_hybrid"),"_results")))))
+        
+
 
 # run the simulation across all chosen parameters
 # loop over starting pop size of aa
@@ -213,28 +222,66 @@ for(N_aa in N_aa_vector){
         # increase counter by one
         i<-i+1
         # run the simulation once
-        one_run <- simulate_pop(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
+        one_run <- simulate_pop(N_aa = N_aa, N_aA = N_aA, N_AA = N_AA , r_aa = 0.2, s_aA = s_aA, s_AA = 1.1, t_max = 10)
+     
+
+        N_aa_end <- c(tail(one_run[, 1],1)) 
+        N_aA_end <- c(tail(one_run[, 2],1)) 
+        N_AA_end <- c(tail(one_run[, 3],1)) 
+
         
         # determine total population sizes
         total_size <- one_run[,1]+one_run[,2]
         
         # determine minimum population size
         min_size <- min(total_size)
-        # determine (first) generation at which this population size occurred
+        # determine (first) generation at which this population size occurred; if min pop size = 0, at what time extinction
         min_gen <- as.numeric(which(total_size==min_size)[1])
         # enter the data into the table
         
-        data_table <- rbind(data_table,data.frame(N_aa=N_aa, N_aA=N_aA, N_AA=N_AA,  min_gen = min_gen, min_size = min_size)) # note that we add the varying parameters (decay rate and selection coefficient) to the table too
-        # stop the repeated computation after no_replicates times
+    
+        result_one_loop$N_aa_results <- N_aa_end
+        result_one_loop$N_aA_results <- N_aA_end
+        result_one_loop$N_AA_results <- N_AA_end
+        result_one_loop$min_size_results <- min_size
+        result_one_loop$min_gen_results <- min_gen
+        
+        result_one_loop$s_aA_fit_hybrid_results <- s_aA
+        result_one_loop$N_aa_str_pop_results <- N_aa
+        result_one_loop$N_AA_str_pop_results <- N_AA
+        
+        data_table <- rbind(data_table, result_one_loop)
+        
+
         
         if(i>no_replicates) break
-        }
-      }
-  }
+      }       
+    } 
+  } 
 }
-# define column names of data table
-colnames(data_table) <- c("N_aa","N_aA", "s_aA","min_gen","min_size")
-# show the first lines of the output
+
 print(head(data_table))
+
+```
+```{r}
+
+
+mean_comb <- aggregate(data_table, list(data_table$s_aA_fit_hybrid_results, data_table$N_aa_str_pop_results, data_table$N_AA_str_pop_results), mean)
+
+library(ggplot2)
+
+
+data_table_plot <- mean_comb[mean_comb$Group.1==1 & mean_comb$Group.3==5,]
+ggplot(data_table_plot, aes(x= Group.2, y= N_aA_results))+geom_point()
+
+ggplot(mean_comb, aes(x= Group.2, y= N_aA_results))+geom_point()
+
+
+
+ 
+ggplot(mean_comb, aes(x= Group.2, y=N_aA_results)) + geom_point() +
+  facet_wrap(vars(cols=factor(Group.1), rows=factor(Group.3)))
+
+
 ```
 
