@@ -43,7 +43,9 @@ First we define the variables and parameters.
 
 -   `s_AA` fitness of genotype AA
 
--   `max_gen`
+-   `max_pop_size` pop size, at which simulation stops
+
+-   `s_aA` fitness of genotype aA
 
 *Variables we need:*
 
@@ -57,18 +59,27 @@ First we define the variables and parameters.
 *Functions we need:*
 
 -   `simulate_gen` models one generation step
+-   `simulate_pop` models multiple generation steps
 
 ## Simulate one generation of population size change
 
+First we need a function that simulates one generation step in the population. Using a poisson distribution, amount of parent generation and accounting for the different fitness benefits of each genotype, the number of offspring per genotype is determind.
+
+In a next step, we count the frequency of allel a and A in the new population. With the help of the Hardy-Weinberg equilibrium, we then predict the new allel frequency in the population. To account for extinction we created an if loop, which would skips the steps starting from the prediction of the allele frequency, and would return to the function a vector with zeros.
+
 ```{r}
+
+#defining starting pop size of the genotypes
 N_aa <- 100
 N_aA <- 0
-N_AA <- 5
+N_AA <- 10
+
+#defining fitness reduction & benefit of the genotypes
+r_aa <- 0.2         # fitness reduction of aa allel comb. equal to decay_rate
+s_aA <- 1.10        # fitness benefit of allel A, equal to sel_coeff
+s_AA <- 1.10        # fitness benefit of allel A, equal to sel_coeff
 
 
-r_aa <- 0.2 # fitness reduction of aa allel comb. equal to decay_rate
-s_aA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
-s_AA <- 1.10 # fitness benefit of allel A, equal to sel_coeff
 
 # --- Simulation of one generation with three genotypes ---
 simulate_gen <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA) {
@@ -83,39 +94,29 @@ simulate_gen <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA) {
   freq_A <- (2 * offsp_AA + offsp_aA) 
   freq_a <- total_gametes - freq_A
   
+  
+  
+  # if loop to account for extinction
   if (total_gametes > 0) {
 
-  
-  #print(freq_a)
-  #print(total_gametes)
-  
-  # Change of allele frequencies (A -> a und a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) #hardy equilibrium 1 = p^2 +2pq +q^2
+  # Change of allele frequencies (A -> a, a -> A); p = (freq_A / total_gametes), q = (freq_a / total_gametes) 
+  # hardy equilibrium 1 = p^2 +2pq +q^2
   predicted_freq_aa <- (freq_a/total_gametes)^2
   predicted_freq_aA <- 2*(freq_A / total_gametes)*(freq_a / total_gametes)
   predicted_freq_AA <- (freq_A/total_gametes)^2
   
-  #print(predicted_freq_aA)
-  #print("PROBLEM")
- 
    # Random draw of new genotypes under hardy-weinberg conditions
   N_total <- offsp_aa + offsp_aA + offsp_AA
-  
-  #print(c(predicted_freq_aa, predicted_freq_aA, predicted_freq_AA))
-  #print(N_total)
-  
   genotypes <- rmultinom(1, N_total, prob = c(predicted_freq_aa, predicted_freq_aA, predicted_freq_AA))
-  
-  #print(genotypes)
-
   
   N_aa_new <- genotypes[1]
   N_aA_new <- genotypes[2]
   N_AA_new <- genotypes[3]
-  
-  #print(c(N_aa_new, N_AA_new, N_aA_new)) 
+
   return(c(N_aa_new, N_aA_new, N_AA_new))
   }
   
+  # in case of extinction
   else
   return(c(0,0,0))
   
@@ -127,8 +128,19 @@ print(simulate_gen(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA))
 
 ## Simulate a population trajectory
 
+Now we create a function that generates a population over time, using the function simulate_gen multiple times. We need two vectors to collect the data, one to save the result and the other to calculate the new pop size. With a for loop we then count the generations we want to create and with each count we run the function simulate_gen. The new pop sizes get added to the vector in each round and are then used for the new round. An if argument makes sure that the loop gets stoped if the population gets extinct or the pop size is x-times bigger than the original pop size.
+
+We use this function and then create a plot, that shows the number of the different genotypes over time plus the total pop size.
+
 ```{r}
+
+# parameter to stop simulation pop if this pop size is reached
+max_pop_size <- 100
+
+
+# creat function to generate a population, using the function to generate a generation
 simulate_pop <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
+  
   # Create the vector in which to save the results
   pop_vector <- c(N_aa, N_aA, N_AA)
   # initiate the variables
@@ -136,63 +148,85 @@ simulate_pop <- function(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max) {
   
   # run the simulation until generation t_max
   for (i in 1:(t_max+1)) {
-    # condition to stop the simulation before t_max: either the population exceeds 1.5 times the original population size, or it goes extinct
-    #A<- print(pop_new)
-    
-    
-    if (pop_new[1]+pop_new[2]+pop_new[3]>=101*(N_aa+N_aA+N_AA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
-    #print(pop_new[1]+pop_new[2]+pop_new[3])
+   
+    # break for loop if pop went extinct or x-times pop size
+    if (pop_new[1]+pop_new[2]+pop_new[3]>=max_pop_size*(N_aa+N_aA+N_AA) | pop_new[1]+pop_new[2]+pop_new[3]==0) break
+   
     # redefine the current population one generation later
     pop_new <- simulate_gen(pop_new[1],pop_new[2],pop_new[3], r_aa, s_aA, s_AA)
-    #print(pop_new)
+    
+    
     # add the new population sizes to the output vector
     pop_vector <- rbind(pop_vector,pop_new)
   }
   
-  # define the row and column names of the output vector
-  rownames(pop_vector) <- (0:t_max+1)[1:length(pop_vector[,1])] # note that the vector has to be cut if the simulation stopped early
+  # define the row and column names of the output vector 
+  rownames(pop_vector) <- (0:t_max+1)[1:length(pop_vector[,1])]  
   colnames(pop_vector) <- c("aa","aA","AA")
+  
   # return the result
-  #print(pop_vector)
   return(pop_vector)	
 }
 
-# Test the function and plot the result
+
+
+
+###### Test the function and plot the result
+
 # set t_max to a value to be used througout
-max_gen <- 1000
+t_max <- 1000
+
 # create your simulation data
-output <- simulate_pop(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, max_gen)
+output <- simulate_pop(N_aa, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
+
 # show the last few lines of the data table
 print(tail(output))
 
-### Next time need to plot and see if distribution is right?
 
-# plot the output - note that the plot range and the x axis have to be adjusted based on the length of the table
+
+
+###### plot the output 
+
 # determine x axis range 
 x_range <- 0:(length(output[,1])-1)
-# this plots the total population size
+
+# plots the total population size
 plot(x_range,output[,1]+output[,2]+output[,3],type='l',ylim=c(0,max(output[,1]+output[,2]+output[,3])),xlab = "Generation",ylab = "Population size")
-# add number of wild type individuals
-lines(x_range,output[,1], col="blue")  #aa
-# add number of mutant individuals
-lines(x_range,output[,2], col="red")  #aA
-# add number of mutant individuals
-lines(x_range,output[,3], col="green")  #AA
+
+# add number of aa genotype
+lines(x_range,output[,1], col="blue") 
+# add number of aA genotype
+lines(x_range,output[,2], col="red")
+# add number of AA genotype
+lines(x_range,output[,3], col="green")
 
 ```
 
-Frage: was ist mit totaler populations grösse; frequenz von hybrid; etc.
+## Simulate a population trajectory with different parameter values
 
-Ziel: drei parameter pro dings -\> 3x3 graphen die xdurchläufe zeigen brauchen: jeder durchlauf der verlauf der funktion wie im teil 2; pro parameter kombination zusammen nehmen
+Lastly we want to test how the number of the genotypes fluctuate under different circumstances. Therefore we vary three parameters:
+
+\- the starting pop size, at what time of the extinction we start
+
+\- the number of AA that are added
+
+\- the fitness of the hybrid
+
+For each of those parameters, we create a vector with the different values we want to test. Next we create two data frames (similar to before) in which we collect the results of one simulation and the results of all the simulations. With the help of a triple for loop we use all the different variables that we chose for the parameter vectors. Each combination we run for multiple replications.
+
+Using the function generate_pop we simulate the pop and after that we collect the number of genotypes at the end. Also we note at which time the pop size reached a minimum and what that minimum was, so we can see at what generation the extinction happened. Those results are added to the data frame for one simulation and then added to the total results.
+
+At the end the first few results of the data frame are displayed.
 
 ```{r}
 # set some parameters to fixed values
 N_aA <- 0
 r_aa <- 0.2
 s_AA <- 1.1
-t_max <- 100
+t_max <- 200
+
 # determine how often to run the simulation for each set of parameters
-no_replicates <- 10
+no_replicates <- 50
 
 # set parameters to vary
 N_aa_vector <- c(100, 50, 20)
@@ -200,30 +234,35 @@ N_AA_vector <- c(10, 5, 2)
 s_aA_vector <- c(1, 1.1, 1.2) 
 
 
-
+# create a data frame to save the results
 data_table <- data.frame(array(NA,dim=c(0,8), dimnames=list(c(), c(paste0(c("N_aa","N_aA", "N_AA","min_gen","min_size","N_aa_str_pop","N_AA_str_pop","s_aA_fit_hybrid"),"_results")))))
 
-
+# create a data frame to save the results of one loop
 result_one_loop <- data.frame(array(NA,dim=c(1,8), dimnames=list(c(), c(paste0(c("N_aa","N_aA", "N_AA","min_gen","min_size","N_aa_str_pop","N_AA_str_pop","s_aA_fit_hybrid"),"_results")))))
         
 
 
-# run the simulation across all chosen parameters
+##### run the simulation across all chosen parameters
+
 # loop over starting pop size of aa
 for(N_aa in N_aa_vector){
   # loop over starting pop size of AA
   for(N_AA in N_AA_vector){
     # loop over fitness of hybrid
     for(s_aA in s_aA_vector){
-       #reset counter for no_replicates to 1
+       
+      #reset counter for no_replicates to 1
       i<-1
       repeat {
+        
         # increase counter by one
         i<-i+1
+        
         # run the simulation once
         one_run <- simulate_pop(N_aa = N_aa, N_aA = N_aA, N_AA = N_AA , r_aa = 0.2, s_aA = s_aA, s_AA = 1.1, t_max = 10)
      
 
+        # collecting the number of genotypes after one simulation
         N_aa_end <- c(tail(one_run[, 1],1)) 
         N_aA_end <- c(tail(one_run[, 2],1)) 
         N_AA_end <- c(tail(one_run[, 3],1)) 
@@ -232,284 +271,86 @@ for(N_aa in N_aa_vector){
         # determine total population sizes
         total_size <- one_run[,1]+one_run[,2]
         
-        # determine minimum population size
+        # determine minimum population size reached during simulation
         min_size <- min(total_size)
-        # determine (first) generation at which this population size occurred; if min pop size = 0, at what time extinction
-        min_gen <- as.numeric(which(total_size==min_size)[1])
-        # enter the data into the table
         
-    
+        # determine (first) generation at which this population size occurred; if min pop size = 0 -> time of extinction
+        min_gen <- as.numeric(which(total_size==min_size)[1])
+        
+        
+        # enter the data into the table
         result_one_loop$N_aa_results <- N_aa_end
         result_one_loop$N_aA_results <- N_aA_end
         result_one_loop$N_AA_results <- N_AA_end
         result_one_loop$min_size_results <- min_size
         result_one_loop$min_gen_results <- min_gen
-        
         result_one_loop$s_aA_fit_hybrid_results <- s_aA
         result_one_loop$N_aa_str_pop_results <- N_aa
         result_one_loop$N_AA_str_pop_results <- N_AA
         
+        # ad the results of one simulation to the data frame with the results
         data_table <- rbind(data_table, result_one_loop)
         
-
-        
+        # stops loop if the simulation was run the time required
         if(i>no_replicates) break
       }       
     } 
   } 
 }
 
+# print the first few results in the data frame
 print(head(data_table))
 
 ```
 
+## Create a plot for that shitload of data
+
 ```{r}
 
 
+# calculate the mean of every run of the same combinations of the variables we wanted to test
 mean_comb <- aggregate(data_table, list(data_table$s_aA_fit_hybrid_results, data_table$N_aa_str_pop_results, data_table$N_AA_str_pop_results), mean)
+
+
 
 library(ggplot2)
 
 
-data_table_plot <- mean_comb[mean_comb$Group.1==1 & mean_comb$Group.3==5,]
-ggplot(data_table_plot, aes(x= Group.2, y= N_aA_results))+geom_point()
+data_table_plot <- mean_comb[mean_comb$s_aA_fit_hybrid_results==1 & mean_comb$N_AA_str_pop_results==5,]
+ggplot(data_table_plot, aes(x= N_aa_str_pop_results, y= N_aA_results))+geom_point()
 
-ggplot(mean_comb, aes(x= Group.2, y= N_aA_results))+geom_point()
+ggplot(mean_comb, aes(x= N_aa_str_pop_results, y= N_aA_results))+geom_point()
 
 
 
  
-ggplot(mean_comb, aes(x= Group.2, y=N_aA_results)) + geom_point() +
-  facet_wrap(vars(cols=factor(Group.1), rows=factor(Group.3)))
+ggplot(mean_comb, aes(x= N_aa_str_pop_results, y=N_aA_results)) + geom_point() +
+  facet_wrap(vars(cols=factor(s_aA_fit_hybrid_results), rows=factor(N_AA_str_pop_results)))
 
 
-```
+library(tidyr)
+library(ggplot2)
 
-# Plot number of N_AA vs. rescue probability
-
-```{r}
-# --- Rescue probability simulation ---
-rescue_prob <- function(N_AA_intro, n_reps = 100, 
-                        N_aa = 100, N_aA = 0, 
-                        r_aa = 0.2, s_aA = 1.10, s_AA = 1.10, 
-                        t_max = 1000) {
-  
-  rescue_count <- 0
-  
-  for (i in 1:n_reps) {
-    out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
-    
-    # end of simulation = last collum
-    last_gen <- tail(out, 1)
-    total_pop <- sum(last_gen)
-    
-      
-    # rescue criteria: population outgrows the startpopulation
-    if (total_pop > (N_aa + N_aA + N_AA_intro)) {
-      rescue_count <- rescue_count + 1
-    }
-  }
-  
-  return(rescue_count / n_reps)
-}
-
-#rescue_prob(8)
-# Testbereich: 0 bis 50 eingeführte Individuen
-N_AA_values <- seq(0, 50, by = 1)
-
-# Berechne Rescue-Wahrscheinlichkeit pro N_AA
-rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps = 100)
-
-# plot
-plot(N_AA_values, rescue_probs, pch = 20,
-     xlab = "Number of introduced individuals (N_AA)",
-     ylab = "Rescue probability",
-     main = "Evolutionary Rescue Probability vs. Introduced Individuals")
-
-```
+long_dat <- mean_comb %>%
+  pivot_longer(cols = c(N_aA_results, N_AA_results),   # beide y-Größen
+               names_to = "variable",
+               values_to = "value")
 
 
 
-# Plot of allele frequency (a) vs varrying number of introduced N_AA
-to show the effect of time when AA gets introduced: adjust initial pop. size of aa (rename also in plot)
-
-```{r}
-# --- Rescue probability simulation ---
-n_reps <- 100
-
-rescue_prob <- function(N_AA_intro, n_reps, 
-                        N_aa = 100, N_aA = 0, 
-                        r_aa = 0.2, s_aA = 1.10, s_AA = 1.10, 
-                        t_max = 1000) {
-  call_freq_a <- c()
-  rescue_count <- 0
-  
-  for (i in 1:n_reps) {
-    out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
-    #print(out)
-    
-    # end of simulation = last collum
-    last_gen <- tail(out, 1)
-    #print(last_gen)
-    total_pop <- sum(last_gen)
-    
-    # rescue criteria: population outgrows the startpopulation
-    if (total_pop > (N_aa + N_aA + N_AA_intro)) {
-      rescue_count <- rescue_count + 1
-      freq_a_sum <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
-      call_freq_a = rbind(call_freq_a, freq_a_sum)
-      #print(call_freq_a)
-    }
-    else{
-      call_freq_a = rbind(call_freq_a, 0)
-      #print(call_freq_a)
-    }
-  }
-  
-  return(c(call_freq_a))
-}
-#print(rescue_prob(10))
-
-# Test "area" of variing number pf introduced N_AA
-N_AA_values <- seq(0, 10, by = 1)
-#print(N_AA_values)
-
-
-# Berechne Rescue-Wahrscheinlichkeit pro N_AA
-rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps)
-#print(rescue_probs)
-
-#Here I transform the returned array (call_freq_a) into a data.frame where we have now 2 columns (1.=N_AA, 2.= allele freq. of a n_reps)
-
-#dim(rescue_probs)
-array_rp <- array(NA, dim=c(dim(rescue_probs)[1],2), dimnames = list(c(),c("N_AA","allele.freq")))
-
-for(i in N_AA_values){
-  
-  array_rp[,1] <- i
-  
-  temp <- rescue_probs[,c(i+1)]
-  temp[temp==0] <- NA
-  
-  array_rp[,2] <- temp
-  
-  array_rp <- data.frame(array_rp)
-  
-  if (i==0){ full_array <- array_rp } else { full_array <- rbind(full_array, array_rp)}
-}
-                  
-#plott full_array 
-ggplot(full_array, aes(x = N_AA, y = allele.freq)) +
-  geom_point(aes(color = allele.freq), size = 3, alpha = 0.7) +  # dots with color fade
-  scale_color_viridis_c(option = "plasma") +                      # fade coloring
-  geom_smooth(method = "lm", se = TRUE, color = "darkred", size = 1.2, alpha = 0.3) +  # trendline
-  scale_x_continuous(breaks = c(0:10)) +         # benutzerdefinierte x-Achsenticks
-  labs(
-    title = "Allele Frequencies vs. Number of Introduced Individuals",
-    subtitle = "N_aa = 100",
-    x = "Number of Introduced Individuals (N_AA)",
-    y = "Allele Frequency (a)",
-    color = "Allele Frequency"
+ggplot(long_dat, aes(x = N_aa_str_pop_results,
+           y = value,
+           colour = variable)) +
+  geom_point() +
+  facet_grid(
+    rows = vars(factor(N_AA_str_pop_results,
+                       labels = c("AA = 5", "AA =20", "AA = 100"))),
+    cols = vars(factor(s_aA_fit_hybrid_results,
+                       labels = c("fitness aA =1.0", "fitness aA =1.1", "fitness aA =1.2")))
   ) +
-  theme_minimal(base_size = 12) +       # clean and big theme
-  theme(
-    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
-    plot.subtitle = element_text(size = 12, hjust = 0.5),
-    axis.title = element_text(face = "bold"),
-    panel.grid.major = element_line(color = "grey90"),
-    panel.grid.minor = element_blank()
-  )
+  labs(x = "Startpopulation aa", y = "Amount of Genotype aA & AA") +
+  theme(strip.background = element_blank(),   # Hintergrund weg
+        strip.text.x     = element_text(size = 10, face = "bold"),
+        strip.text.y     = element_text(size = 10, angle = 0))
+
 ```
-
-# Plot of allele frequency (a) vs varrying number of pop. size aa
-
-this still got an error that need to be fixed 
-
-```{r}
-# --- Rescue probability simulation ---
-n_reps <- 100
-
-rescue_prob_aa <- function(N_aa_intro, N_AA = 10, n_reps = 100, 
-                        N_aA = 0, 
-                        r_aa = 0.2, s_aA = 1.10, s_AA = 1.10, 
-                        t_max = 1000) {
-  call_freq_a <- c()
-  rescue_count <- 0
-  
-  for (i in 1:n_reps) {
-    out <- simulate_pop(N_aa_intro, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
-    #print(out)
-    
-    # end of simulation = last collum
-    last_gen <- tail(out, 1)
-    #print(last_gen)
-    total_pop <- sum(last_gen)
-    
-    # rescue criteria: population outgrows the startpopulation
-    if (total_pop > (N_aa_intro+ N_aA + N_AA)) {
-      rescue_count <- rescue_count + 1
-      freq_a_sum <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
-      call_freq_a = rbind(call_freq_a, freq_a_sum)
-      #print(call_freq_a)
-    }
-    else{
-      call_freq_a = rbind(call_freq_a, 0)
-      #print(call_freq_a)
-    }
-  }
-  
-  return(c(call_freq_a))
-}
-
-print(rescue_prob_aa(20))
-# Test "area" of variing number pf introduced N_AA
-
-N_aa_values <- seq(100, 10, by = 10)
-#print(N_aa_values)
-
-
-# Berechne Rescue-Wahrscheinlichkeit pro N_AA
-rescue_prob_aas <- sapply(N_aa_values, rescue_prob_aa, n_reps)
-#print(rescue_prob_aas)
-
-#Here I transform the returned array (call_freq_a) into a data.frame where we have now 2 columns (1.=N_aa, 2.= allele freq. of a n_reps)
-
-#dim(rescue_prob_aas)
-array_rp_aa <- array(NA, dim=c(dim(rescue_prob_aas)[1],2), dimnames = list(c(),c("N_aa","allele.freq_a")))
-
-for(i in N_aa_values){
-  
-  array_rp_aa[,1] <- i
-  
-  temp <- rescue_prob_aas[,c(i+1)]
-  temp[temp==0] <- NA
-  
-  array_rp_aa[,2] <- temp
-  
-  array_rp_aa <- data.frame(array_rp_aa)
-  
-  if (i==0){ full_array_aa <- array_rp_aa } else { full_array_aa <- rbind(full_array_aa, array_rp_aa)}
-}
-
-#plott full_array_aa 
-ggplot(full_array_aa, aes(x = N_aa, y = allele.freq_a)) +
-  geom_point(aes(color = allele.freq_a), size = 2, alpha = 0.7) +  # dots with color fade
-  scale_color_viridis_c(option = "plasma") +                   # fade coloring
-  geom_smooth(method = "lm", se = TRUE, color = "darkred", size = 1.2, alpha = 0.3) +  # trendline
-  labs(
-    title = "Allele Frequencies vs. Time of Introduced Individuals",
-    subtitle = "N_AA = 10",
-    x = "Time of Introduction (N_AA)",
-    y = "Allele Frequency (a)",
-    color = "Allele Frequency"
-  ) +
-  theme_minimal(base_size = 14) +       # clean and big theme
-  theme(
-    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
-    plot.subtitle = element_text(size = 12, hjust = 0.5),
-    axis.title = element_text(face = "bold"),
-    panel.grid.major = element_line(color = "grey90"),
-    panel.grid.minor = element_blank()
-  )
-```
-
