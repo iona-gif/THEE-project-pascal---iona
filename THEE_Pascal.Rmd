@@ -307,37 +307,25 @@ print(head(data_table))
 
 ```{r}
 
+#open ggplot & tidyvers
+library(ggplot2)
+library(tidyr)
 
 # calculate the mean of every run of the same combinations of the variables we wanted to test
 mean_comb <- aggregate(data_table, list(data_table$s_aA_fit_hybrid_results, data_table$N_aa_str_pop_results, data_table$N_AA_str_pop_results), mean)
 
 
-
-library(ggplot2)
-
-
-data_table_plot <- mean_comb[mean_comb$s_aA_fit_hybrid_results==1 & mean_comb$N_AA_str_pop_results==5,]
-ggplot(data_table_plot, aes(x= N_aa_str_pop_results, y= N_aA_results))+geom_point()
-
-ggplot(mean_comb, aes(x= N_aa_str_pop_results, y= N_aA_results))+geom_point()
+#### create a plot that compares the important aspects
 
 
-
- 
-ggplot(mean_comb, aes(x= N_aa_str_pop_results, y=N_aA_results)) + geom_point() +
-  facet_wrap(vars(cols=factor(s_aA_fit_hybrid_results), rows=factor(N_AA_str_pop_results)))
-
-
-library(tidyr)
-library(ggplot2)
-
+# combine the results of aA and AA to compare them at the same time
 long_dat <- mean_comb %>%
-  pivot_longer(cols = c(N_aA_results, N_AA_results),   # beide y-Größen
+  pivot_longer(cols = c(N_aA_results, N_AA_results),   
                names_to = "variable",
                values_to = "value")
 
 
-
+# create the plot
 ggplot(long_dat, aes(x = N_aa_str_pop_results,
            y = value,
            colour = variable)) +
