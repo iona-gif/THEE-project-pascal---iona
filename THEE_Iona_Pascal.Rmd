@@ -299,12 +299,11 @@ rescue_prob <- function(N_AA_intro, n_reps = 100,
   for (i in 1:n_reps) {
     out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
     
-    # end of simulation = last collum
+    # end of simulation = last column
     last_gen <- tail(out, 1)
     total_pop <- sum(last_gen)
     
-      
-    # rescue criteria: population outgrows the startpopulation
+    # rescue criteria: population outgrows the start population
     if (total_pop > (N_aa + N_aA + N_AA_intro)) {
       rescue_count <- rescue_count + 1
     }
@@ -313,7 +312,6 @@ rescue_prob <- function(N_AA_intro, n_reps = 100,
   return(rescue_count / n_reps)
 }
 
-#rescue_prob(8)
 # Testbereich: 0 bis 50 eingeführte Individuen
 N_AA_values <- seq(0, 50, by = 1)
 
@@ -324,18 +322,32 @@ rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps = 100)
 plot(N_AA_values, rescue_probs, pch = 20,
      xlab = "Number of introduced individuals (N_AA)",
      ylab = "Rescue probability",
-     main = "Evolutionary Rescue Probability vs. Introduced Individuals")
+     main = "Rescue Probability vs. Introduced Individuals")
 
+# --- Füge eine rote Linie bei 80% Rescue Probability hinzu ---
+target_prob <- 0.8
+
+# Finde den kleinsten N_AA, bei dem rescue_prob >= 0.8 ist
+if (any(rescue_probs >= target_prob)) {
+  N_at_80 <- N_AA_values[min(which(rescue_probs >= target_prob))]
+  
+  # Vertikale rote Linie zeichnen
+  abline(v = N_at_80, col = "red", lwd = 2, lty = 2)
+  
+  # Optional: Text hinzufügen
+  text(N_at_80, target_prob, labels = paste("> 80% at N_AA =", N_at_80),
+       pos = 4, col = "red", cex = 0.8)
+}
 ```
 
 # Plot of allele frequency (a) vs varrying number of introduced N_AA
 
-to show the effect of time when AA gets introduced: adjust initial pop. size of aa (rename also in plot)
+to show the effect of how many AA gets introduced, you can play with adjust initial pop. size of aa 
 
 ```{r}
 # --- Rescue probability simulation ---
 n_reps <- 100
-
+N_aa <- 20
 rescue_prob <- function(N_AA_intro, n_reps, 
                         N_aa = 20, N_aA = 0, 
                         r_aa = 0.2, s_aA = 1.10, s_AA = 1.10, 
@@ -374,11 +386,11 @@ N_AA_values <- seq(0, 10, by = 1)
 #print(N_AA_values)
 
 
-# Berechne Rescue-Wahrscheinlichkeit pro N_AA
+# Calculate rescue probability for each N_AA
 rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps)
 #print(rescue_probs)
 
-#Here I transform the returned array (call_freq_a) into a data.frame where we have now 2 columns (1.=N_AA, 2.= allele freq. of a n_reps)
+#Here we transform the returned array (call_freq_a) into a data.frame where we have now 2 columns (1.=N_AA, 2.= allele freq. of a n_reps)
 
 #dim(rescue_probs)
 array_rp <- array(NA, dim=c(dim(rescue_probs)[1],2), dimnames = list(c(),c("N_AA","allele.freq")))
@@ -402,16 +414,18 @@ ggplot(full_array, aes(x = N_AA, y = allele.freq)) +
   geom_point(aes(color = allele.freq), size = 3, alpha = 0.7) +  # dots with color fade
   scale_color_viridis_c(option = "plasma") +                      # fade coloring
   geom_smooth(method = "lm", se = TRUE, color = "darkred", size = 1.2, alpha = 0.3) +  # trendline
-  scale_x_continuous(breaks = c(0:10)) +         # benutzerdefinierte x-Achsenticks
+  scale_x_continuous(breaks = c(0:10)) + # scale x aexis from 0 to
+  scale_y_continuous(limits = c(0, 0.12), breaks = seq(0, 0.12, by = 0.02)) +
   labs(
     title = "Allele Frequencies vs. Number of Introduced Individuals",
-    subtitle = "N_aa = 20",
+    subtitle = paste("N_aa =", N_aa),
     x = "Number of Introduced Individuals (N_AA)",
     y = "Allele Frequency (a)",
     color = "Allele Frequency"
   ) +
   theme_minimal(base_size = 12) +       # clean and big theme
   theme(
+    plot.title.position = "plot", 
     plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 12, hjust = 0.5),
     axis.title = element_text(face = "bold"),
@@ -422,65 +436,63 @@ ggplot(full_array, aes(x = N_AA, y = allele.freq)) +
 
 # Plot of allele frequency (a) vs varrying number of pop. size aa
 
+to show the effect of time when AA gets introduced: adjust initial pop. size of aa 
 
 ```{r}
-# --- Rescue probability simulation (dein Original) ------------------
+# --- Rescue probability simulation ---
 n_reps <- 100
+N_AA   <- 10
+N_aa_values <- seq(100, 10, by = -10)   # 100 90 80 … 10
 
-rescue_prob_aa <- function(N_aa_intro, N_AA = 10, n_reps = 100,
+rescue_prob_aa <- function(N_aa_intro, n_reps, N_AA,
                            N_aA = 0,
                            r_aa = 0.2, s_aA = 1.10, s_AA = 1.10,
                            t_max = 1000) {
-  call_freq_a <- c()
-  rescue_count <- 0
   
-  for (i in 1:n_reps) {
+  call_freq_a  <- numeric(n_reps)   # Vektor statt dynamisches rbind (schneller)
+  
+  for (i in seq_len(n_reps)) {
     out <- simulate_pop(N_aa_intro, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
     
-    last_gen   <- tail(out, 1)
-    total_pop  <- sum(last_gen)
+    last_gen  <- tail(out, 1)
+    total_pop <- sum(last_gen)
     
-    if (total_pop > (N_aa_intro + N_aA + N_AA)) {
-      rescue_count <- rescue_count + 1
-      freq_a_sum <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
-      call_freq_a <- rbind(call_freq_a, freq_a_sum)
+    if (total_pop > (100 + N_aA + N_AA)) {
+      call_freq_a[i] <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
     } else {
-      call_freq_a <- rbind(call_freq_a, 0)
+      call_freq_a[i] <- NA            # NA statt 0 (übersichtlicher)
     }
   }
-  return(call_freq_a)            # bleibt wie von dir gewünscht
+  return(call_freq_a)                 # Vektor der Länge n_reps
 }
 
-# ---------- dein Test-Block -----------------------------------------
-N_aa_values <- seq(100, 10, by = -10)   # Reihenfolge beibehalten
-rescue_prob_aas <- sapply(N_aa_values, rescue_prob_aa, n_reps)
-# rescue_prob_aas ist jetzt ein 100 x length(N_aa_values) - Matrix
 
-# ---------- Aufbereitung (nur Indizierung korrigiert) ---------------
-full_list <- lapply(seq_along(N_aa_values), function(idx) {
-  n_aa <- N_aa_values[idx]
-  vec  <- rescue_prob_aas[, idx]   # korrekte Spalte!
-  vec[vec == 0] <- NA
-  data.frame(N_aa = n_aa, allele.freq_a = vec)
-})
-full_array_aa <- do.call(rbind, full_list)
+## Matrix mit je einer Spalte pro N_aa_intro
+rescue_prob_aas <- sapply(N_aa_values, rescue_prob_aa, n_reps, N_AA)
 
-# ---------- Plot (dein Original) ------------------------------------
-ggplot(full_array_aa, aes(x = N_aa, y = allele.freq_a)) +
+## ----- Ergebnisse sauber in Data-Frame bringen ----------------------
+full_df <- data.frame(
+  N_aa        = rep(N_aa_values, each = n_reps),
+  allele.freq_a = c(rescue_prob_aas)
+)
+
+## ----- Plot ---------------------------------------------------------
+ggplot(full_df, aes(x = N_aa, y = allele.freq_a)) +
   geom_point(aes(color = allele.freq_a), size = 2, alpha = 0.7) +
   scale_color_viridis_c(option = "plasma") +
   geom_smooth(method = "lm", se = TRUE, color = "darkred", size = 1.2, alpha = 0.3) +
-  scale_x_continuous(breaks = seq(0, 100, by = 10)) +
-  scale_y_continuous(limits = c(0, 0.15), breaks = seq(0, 0.15, by = 0.05)) + # fixe y-Skala
+  scale_x_reverse(breaks = seq(0, 100, by = 10)) +
+  scale_y_continuous(limits = c(0, 0.12), breaks = seq(0, 0.12, by = 0.02)) +
   labs(
-    title = "Allele Frequencies vs. Time of Introduced Individuals",
-    subtitle = "N_AA = 10",
-    x = "Time of Introduction (pop. size N_aa as proxy for time)",
+    title = "Allele Frequencies vs. Time of Introduction",
+    subtitle = paste("Number of introduced N_AA =", N_AA),
+    x = "Initial population size of N_aa",
     y = "Allele Frequency (a)",
     color = "Allele Frequency"
   ) +
   theme_minimal(base_size = 14) +
   theme(
+    plot.title.position = "plot", 
     plot.title    = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 12, hjust = 0.5),
     axis.title    = element_text(face = "bold"),
