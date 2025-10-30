@@ -349,59 +349,71 @@ ggplot(long_dat, aes(x = N_aa_str_pop_results,
 ```
 
 
-# Plot number of introduced individuals (N_AA) vs. rescue probability
+# Number of introduced individuals (N_AA) vs. rescue probability
 
-In this part we made a function that calculates the rescue probability for our inbreed depressed 
+In this part we made a function that calculates the rescue probability for our inbreed depressed population. A rescue is successful when at the end of a run the total population size reaches again the initial population size we started the simulation with. We then run this over a 100 replicates and plot the rescue probability against the number of introduced individuals (N_AA).
 
 ```{r}
 # --- Rescue probability simulation ---
-rescue_prob <- function(N_AA_intro, n_reps = 100, 
-                        N_aa = 100, N_aA = 0, 
-                        r_aa = 0.2, s_aA = 1.10, s_AA = 1.10, 
-                        t_max = 1000) {
-  
-  rescue_count <- 0
-  
+
+rescue_prob <- function(N_AA_intro,          # number of AA individuals introduced at t = 0
+                        n_reps   = 100,      # number of replicates
+                        N_aa     = 100,      # initial number of aa individuals
+                        N_aA     = 0,        # initial number of aA heterozygotes
+                        r_aa     = 0.2,      # decay rate (1-r_aa)
+                        s_aA     = 1.10,     # selection coefficient of aA (fitness multiplier)
+                        s_AA     = 1.10,     # selection coefficient of AA (fitness multiplier)
+                        t_max    = 1000) {   # max generations to run each replicate
+
+  rescue_count <- 0          # counter for successful rescues to 0
+
   for (i in 1:n_reps) {
+    # run one population trajectory
     out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
-    
-    # end of simulation = last column
+
+    # extract the final generation (last row of the returned matrix)
     last_gen <- tail(out, 1)
+
+    # total population size at the end
     total_pop <- sum(last_gen)
-    
-    # rescue criteria: population outgrows the start population
+
+    # rescue definition: final population larger than the initial one
     if (total_pop > (N_aa + N_aA + N_AA_intro)) {
       rescue_count <- rescue_count + 1
     }
   }
-  
+
+  # return the rescue probability
   return(rescue_count / n_reps)
 }
 
-# Testbereich: 0 bis 50 eingeführte Individuen
+# ------------------------------------------------------------------
+# Vary the number of introduced AA individuals from 0 to 50
 N_AA_values <- seq(0, 50, by = 1)
 
-# Berechne Rescue-Wahrscheinlichkeit pro N_AA
+# Packing the results (calculated rescue probabilities) into a numeric vector
 rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps = 100)
 
-# plot
+# ------------------------------------------------------------------
+# Plot
 plot(N_AA_values, rescue_probs, pch = 20,
      xlab = "Number of introduced individuals (N_AA)",
      ylab = "Rescue probability",
      main = "Rescue Probability vs. Introduced Individuals")
 
-# --- Füge eine rote Linie bei 80% Rescue Probability hinzu ---
+# Add a reference line at 80 % rescue probability
 target_prob <- 0.8
 
-# Finde den kleinsten N_AA, bei dem rescue_prob >= 0.8 ist
+# Find the smallest introduction size that achieves ≥ 80 % rescue
 if (any(rescue_probs >= target_prob)) {
   N_at_80 <- N_AA_values[min(which(rescue_probs >= target_prob))]
-  
-  # Vertikale rote Linie zeichnen
+
+  # Draw vertical red dashed line at that introduction size
   abline(v = N_at_80, col = "red", lwd = 2, lty = 2)
-  
-  # Optional: Text hinzufügen
-  text(N_at_80, target_prob, labels = paste("> 80% at N_AA =", N_at_80),
+
+  # Annotate the red line
+  text(N_at_80, target_prob,
+       labels = paste("> 80% at N_AA =", N_at_80),
        pos = 4, col = "red", cex = 0.8)
 }
 ```
