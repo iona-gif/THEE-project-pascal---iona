@@ -23,7 +23,7 @@ In this notebook, we are implementing simulations of evolutionary rescue by intr
 
 \- second generation can mate with sick individual or hybrid
 
-**Question:** How many individuals have to be introduced at time x to rescue a homozygot population with low fitness (inbreed depression)?
+**Question:** How many individuals have to be introduced at time x to rescue an allele of a homozygot population with low fitness?
 
 =======
 
@@ -44,8 +44,6 @@ First we define the variables and parameters.
 -   `s_AA` fitness of genotype AA
 
 -   `max_pop_size` pop size, at which simulation stops
-
--   `s_aA` fitness of genotype aA
 
 *Variables we need:*
 
@@ -226,10 +224,10 @@ s_AA <- 1.1
 t_max <- 200
 
 # determine how often to run the simulation for each set of parameters
-no_replicates <- 50
+no_replicates <- 100
 
 # set parameters to vary
-N_aa_vector <- c(100, 50, 20)
+N_aa_vector <- c( seq(10, 100, by=10))
 N_AA_vector <- c(10, 5, 2)
 s_aA_vector <- c(1, 1.1, 1.2) 
 
@@ -305,6 +303,10 @@ print(head(data_table))
 
 ## Create a plot for that shitload of data
 
+Because we have a ton of data from the for-loops, we need to summarize them to be able to process them. For that we collect all the results that came from the same combination of the parameters we varied and calculate the mean of those results.
+
+With the means we can now create a plot to compare all the important factors.
+
 ```{r}
 
 #open ggplot & tidyvers
@@ -313,6 +315,8 @@ library(tidyr)
 
 # calculate the mean of every run of the same combinations of the variables we wanted to test
 mean_comb <- aggregate(data_table, list(data_table$s_aA_fit_hybrid_results, data_table$N_aa_str_pop_results, data_table$N_AA_str_pop_results), mean)
+
+
 
 
 #### create a plot that compares the important aspects
@@ -325,6 +329,7 @@ long_dat <- mean_comb %>%
                values_to = "value")
 
 
+
 # create the plot
 ggplot(long_dat, aes(x = N_aa_str_pop_results,
            y = value,
@@ -332,11 +337,11 @@ ggplot(long_dat, aes(x = N_aa_str_pop_results,
   geom_point() +
   facet_grid(
     rows = vars(factor(N_AA_str_pop_results,
-                       labels = c("AA = 5", "AA =20", "AA = 100"))),
+                       labels = c("AA = 2", "AA = 5", "AA = 10"))),
     cols = vars(factor(s_aA_fit_hybrid_results,
                        labels = c("fitness aA =1.0", "fitness aA =1.1", "fitness aA =1.2")))
   ) +
-  labs(x = "Startpopulation aa", y = "Amount of Genotype aA & AA") +
+  labs(x = "Startpopulation aa", y = "Amount of Genotype aA & AA at the end") +
   theme(strip.background = element_blank(),   # Hintergrund weg
         strip.text.x     = element_text(size = 10, face = "bold"),
         strip.text.y     = element_text(size = 10, angle = 0))
