@@ -349,7 +349,9 @@ ggplot(long_dat, aes(x = N_aa_str_pop_results,
 ```
 
 
-# Plot number of N_AA vs. rescue probability
+# Plot number of introduced individuals (N_AA) vs. rescue probability
+
+In this part we made a function that calculates the rescue probability for our inbreed depressed 
 
 ```{r}
 # --- Rescue probability simulation ---
