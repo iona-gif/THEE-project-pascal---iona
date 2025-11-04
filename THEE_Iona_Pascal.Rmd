@@ -391,7 +391,7 @@ rescue_prob <- function(N_AA_intro,          # number of AA individuals introduc
 # Vary the number of introduced AA individuals from 0 to 50
 N_AA_values <- seq(0, 50, by = 1)
 
-# Packing the results (calculated rescue probabilities) into a numeric vector
+# Packing the results (calculated rescue probabilities) into a numeric vector/matrix
 rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps = 100)
 
 # ------------------------------------------------------------------
@@ -420,51 +420,79 @@ if (any(rescue_probs >= target_prob)) {
 
 # Allele frequency (a) vs. introduced number of individuals (N_AA)
 
-After knowing the rescue probability we want to investigate if the allele "a" also is rescued (Why? One possible rescue scenario is also that only AA individuals survive). So we use the same rescue probabilty function as before and add the calculation of the frequency of allele "a". At the end we plot the allele frequency against the number of introduced individuals. First plot is including all the extinction events, where the second plot exclude them. We exclude the extinction events in the second plot since we are interested in the allele frequency change after a certain threshold (Threshold = >80% rescue probability, as seen in previous plot at around 8-10 individuals). With out excluding them the slope of the trend line is really step and indicates that the more you introduce the better. However after reaching the threshold we are no more interested in extinction events since the rescue probability is over 80%. With that approach we can illustrat the change in allele frequency with numbers over the threshold.
+After knowing the rescue probability we want to investigate if the allele "a" also is rescued (Why? One possible rescue scenario is also that only AA individuals survive). So we use the same rescue probability function as before and add the calculation of the frequency of allele "a". At the end we plot the allele frequency against the number of introduced individuals. First plot is including all the extinction events, where the second plot exclude them. We exclude the extinction events in the second plot since we are interested in the allele frequency change after a certain threshold (Threshold = >80% rescue probability, as seen in previous plot at around 8-10 individuals). With out excluding them the slope of the trend line is really step and indicates that the more you introduce the better. However after reaching the threshold we are no more interested in extinction events since the rescue probability is over 80%. With that approach we can illustrate the change in allele frequency with numbers over the mentioned threshold.
 
 ```{r}
 # --- Allele frequency (a) vs. introduced number of individuals (N_AA) ---
 
-# === CONFIG ===
-n_reps <- 100
-N_aa <- 20
-N_AA_values <- seq(2, 20, by = 2)   # 2, 4, 6, ..., 20
+# --- PARAMETER SETUP ---
 
-# === RESCUE-FUNKTION ===
-rescue_prob <- function(N_AA_intro, n_reps,
-                        N_aa = 20, N_aA = 0,
-                        r_aa = 0.2, s_aA = 1.10, s_AA = 1.10,
-                        t_max = 1000) {
+n_reps <- 100                      # Number of replicate simulations
+N_aa <- 100                        # Initial number of resident aa individuals
+N_AA_values <- seq(2, 20, by = 2)  # Range of introduced AA individuals (2 to 20, step 2)
+
+
+# ------------------------------------------------------------------
+# --- FUNCTION: rescue_prob() ---
+# Similar to the previous rescue probability function, but now includes
+# the calculation of the final allele frequency of "a" in each replicate.
+
+rescue_prob <- function(N_AA_intro,           # number of AA individuals introduced at t = 0
+                        n_reps,               # number of replicates
+                        N_aa = 100,           # initial number of aa individuals
+                        N_aA = 0,             # initial number of aA heterozygotes
+                        r_aa = 0.2,           # decay rate of aa population (1 - r_aa)
+                        s_aA = 1.10,          # fitness multiplier of aA
+                        s_AA = 1.10,          # fitness multiplier of AA
+                        t_max = 1000) {       # maximum number of generations
   
-  call_freq_a <- c()
+  call_freq_a <- c()   # vector to store allele frequencies for each replicate
   
+  # --- SIMULATION LOOP ---
   for (i in 1:n_reps) {
+    # Run one population trajectory using simulate_pop() function
     out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
+    
+    # Extract the last generation (final population state)
     last_gen <- tail(out, 1)
+    
+    # Compute total population size at the end
     total_pop  <- sum(last_gen)
     
+    # --- Determine whether the population was rescued or not ---
+    # Rescue is defined as final population > initial population size
     if (total_pop > (N_aa + N_aA + N_AA_intro)) {
+      # Calculate allele frequency of "a" in the final generation:
+      # aa contributes 2 a-alleles, aA contributes 1 a-allele
       freq_a <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
       call_freq_a <- rbind(call_freq_a, freq_a)
     } else {
+      # If the population went extinct, record allele frequency as 0
       call_freq_a <- rbind(call_freq_a, 0)
     }
   }
+  
+  # Return vector of allele frequencies for all replicates
   return(call_freq_a)
 }
 
-# === SIMULATION ===
+# ------------------------------------------------------------------
+# Same as before (results packing)
 rescue_probs <- sapply(N_AA_values, rescue_prob, n_reps)
 
-# === AUFBEREITUNG ===
+# ------------------------------------------------------------------
+# --- DATA PREPARATION ---
+
+# Create an array to store the relationship between N_AA and allele frequency
 array_rp <- array(NA, dim = c(dim(rescue_probs)[1], 2),
                   dimnames = list(NULL, c("N_AA", "allele.freq")))
 
+# Combine results into a data frame
 for (i in seq_along(N_AA_values)) {
   val <- N_AA_values[i]
   array_rp[, 1] <- val
-  temp <- rescue_probs[, i]   # i-te Spalte = aktueller N_AA-Wert
-  temp[temp == 0] <- NA
+  temp <- rescue_probs[, i]     # i-th column = results for current N_AA value
+  temp[temp == 0] <- NA          # replace 0s (extinction) with NA temporarily
   array_rp[, 2] <- temp
   array_rp <- data.frame(array_rp)
   
@@ -476,13 +504,12 @@ for (i in seq_along(N_AA_values)) {
 }
 
 # ------------------------------------------------------------------
-# Plot with extinction included
+# --- PLOT 1: Including extinct populations ---
 
-# === 0 wieder als 0 setzen ===
+# Convert NAs back to zeros (for visualization)
 full_array$allele.freq[is.na(full_array$allele.freq)] <- 0
 
-# === PLOT: alle Punkte, Trend nur für Rescue ===
-
+# Plot all replicates, including extinction events (freq = 0)
 ggplot(full_array, aes(x = N_AA, y = allele.freq)) +
   geom_point(aes(color = allele.freq), size = 3, alpha = 0.7) +
   scale_color_viridis_c(option = "plasma", limits = c(0, 0.12)) +
@@ -505,13 +532,12 @@ ggplot(full_array, aes(x = N_AA, y = allele.freq)) +
         panel.grid.minor = element_blank())
 
 # ------------------------------------------------------------------
-# Plot without extinction 
+# --- PLOT 2: Excluding extinct populations (only rescues) ---
 
-# === FILTER: nur Rescue-Fälle (freq > 0) ===
+# Filter data to include only rescued populations (allele.freq > 0)
 full_array_no0 <- subset(full_array, allele.freq > 0)
 
-# === PLOT (nur Rescue) ===
-
+# Plot only the successful rescue cases
 ggplot(full_array_no0, aes(x = N_AA, y = allele.freq)) +
   geom_point(aes(color = allele.freq), size = 3, alpha = 0.7) +
   scale_color_viridis_c(option = "plasma", limits = c(0, 0.12)) +
@@ -532,54 +558,87 @@ ggplot(full_array_no0, aes(x = N_AA, y = allele.freq)) +
         panel.grid.minor = element_blank())
 ```
 
-# Plot of allele frequency (a) vs varrying number of pop. size aa
+# Plot of allele frequency (a) vs time (varying initial number of N_aa)
 
-to show the effect of time when AA gets introduced: adjust initial pop. size of aa
+After we observed the different effects of varying numbers of introduced individuals of N_AA, we now want to investigate how time plays a roll in our model. To understand the following part it is important to noticed, that we used the initial population size of N_aa as a proxy for time (i.e. the smaller the initial population size of N_aa the further time has passed, since the starting population is declining over time). Knowing that we observe the effect of time by plotting on the y-axies again the allele frequencies of "a" and now on the x-axies the initial population sizes of N_aa (as a proxy for time). 
 
 ```{r}
-# --- Rescue probability simulation ---
-n_reps <- 100
-N_AA   <- 10
-N_aa_values <- seq(100, 10, by = -10)   # 100 90 80 … 10
+# --- Allele frequency (a) vs. time (varying initial number of N_aa) ---
+
+# ------------------------------------------------------------------
+# --- PARAMETER SETUP ---
+
+n_reps <- 100                         # Number of replicate simulations
+N_AA   <- 10                          # Number of AA individuals introduced at t = 0
+N_aa_values <- seq(100, 10, by = -10) # Initial aa population sizes: 100, 90, 80, ..., 10
+
+
+# ------------------------------------------------------------------
+# --- FUNCTION: rescue_prob_aa() ---
+# same function as previous, but this time with a other approach (without using rbind())
 
 rescue_prob_aa <- function(N_aa_intro, n_reps, N_AA,
-                           N_aA = 0,
-                           r_aa = 0.2, s_aA = 1.10, s_AA = 1.10,
-                           t_max = 1000) {
+                           N_aA = 0,            # initial number of aA heterozygotes
+                           r_aa = 0.2,          # decay rate of aa population (1 - r_aa)
+                           s_aA = 1.10,         # fitness multiplier of aA
+                           s_AA = 1.10,         # fitness multiplier of AA
+                           t_max = 1000) {      # maximum number of generations
   
-  call_freq_a  <- numeric(n_reps)   # Vektor statt dynamisches rbind (schneller)
+  # Pre-allocate a numeric vector for efficiency (faster than rbind)
+  call_freq_a  <- numeric(n_reps)
   
+  # --- SIMULATION LOOP ---
   for (i in seq_len(n_reps)) {
+    # Run one population trajectory using simulate_pop()
     out <- simulate_pop(N_aa_intro, N_aA, N_AA, r_aa, s_aA, s_AA, t_max)
     
+    # Extract the last generation
     last_gen  <- tail(out, 1)
+    
+    # Calculate total population size at the end
     total_pop <- sum(last_gen)
     
+    # --- Determine whether the population was rescued or not ---
+    # Rescue is defined as final population > initial population size
     if (total_pop > (100 + N_aA + N_AA)) {
+      # Compute allele frequency of "a" in the final generation:
+      # aa contributes 2 a-alleles, aA contributes 1
       call_freq_a[i] <- (last_gen[1]*2 + last_gen[2]) / (total_pop*2)
     } else {
-      call_freq_a[i] <- NA            # NA statt 0 (übersichtlicher)
+      # If the population went extinct or failed to rescue, record NA
+      call_freq_a[i] <- NA
     }
   }
-  return(call_freq_a)                 # Vektor der Länge n_reps
+  
+  # Return vector of allele frequencies for all replicates
+  return(call_freq_a)
 }
 
 
-## Matrix mit je einer Spalte pro N_aa_intro
+# ------------------------------------------------------------------
+# Same as previous (result = one column per N_aa value, each containing allele frequencies for all replicates)
 rescue_prob_aas <- sapply(N_aa_values, rescue_prob_aa, n_reps, N_AA)
 
-## ----- Ergebnisse sauber in Data-Frame bringen ----------------------
+
+# ------------------------------------------------------------------
+# --- DATA PREPARATION ---
+
+# Convert simulation results into a data frame
 full_df <- data.frame(
-  N_aa        = rep(N_aa_values, each = n_reps),
-  allele.freq_a = c(rescue_prob_aas)
+  N_aa          = rep(N_aa_values, each = n_reps),  # repeat each N_aa value n_reps times
+  allele.freq_a = c(rescue_prob_aas)                # convert matrix into a single vector
 )
 
-## ----- Plot ---------------------------------------------------------
+
+# ------------------------------------------------------------------
+# --- PLOTTING ---
+
 ggplot(full_df, aes(x = N_aa, y = allele.freq_a)) +
-  geom_point(aes(color = allele.freq_a), size = 2, alpha = 0.7) +
-  scale_color_viridis_c(option = "plasma") +
-  geom_smooth(method = "lm", se = TRUE, color = "darkred", size = 1.2, alpha = 0.3) +
-  scale_x_reverse(breaks = seq(0, 100, by = 10)) +
+  geom_point(aes(color = allele.freq_a), size = 2, alpha = 0.7) +    # scatter points
+  scale_color_viridis_c(option = "plasma") +                         # color scale
+  geom_smooth(method = "lm", se = TRUE, color = "darkred",           # linear trend line
+              size = 1.2, alpha = 0.3) +
+  scale_x_reverse(breaks = seq(0, 100, by = 10)) +                   # reverse x-axis (100 → 0)
   scale_y_continuous(limits = c(0, 0.12), breaks = seq(0, 0.12, by = 0.02)) +
   labs(
     title = "Allele Frequencies vs. Time of Introduction",
