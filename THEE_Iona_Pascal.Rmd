@@ -348,8 +348,7 @@ ggplot(long_dat, aes(x = N_aa_str_pop_results,
 
 ```
 
-
-# Number of introduced individuals (N_AA) vs. rescue probability
+## Number of introduced individuals (N_AA) vs. rescue probability
 
 In this part we made a function that calculates the rescue probability for our inbreed depressed population. A rescue is successful when at the end of a run the total population size reaches again the initial population size we started the simulation with. We then run this over a 100 replicates and plot the rescue probability against the number of introduced individuals (N_AA).
 
@@ -418,9 +417,9 @@ if (any(rescue_probs >= target_prob)) {
 }
 ```
 
-# Allele frequency (a) vs. introduced number of individuals (N_AA)
+## Allele frequency (a) vs. introduced number of individuals (N_AA)
 
-After knowing the rescue probability we want to investigate if the allele "a" also is rescued (Why? One possible rescue scenario is also that only AA individuals survive). So we use the same rescue probability function as before and add the calculation of the frequency of allele "a". At the end we plot the allele frequency against the number of introduced individuals. First plot is including all the extinction events, where the second plot exclude them. We exclude the extinction events in the second plot since we are interested in the allele frequency change after a certain threshold (Threshold = >80% rescue probability, as seen in previous plot at around 8-10 individuals). With out excluding them the slope of the trend line is really step and indicates that the more you introduce the better. However after reaching the threshold we are no more interested in extinction events since the rescue probability is over 80%. With that approach we can illustrate the change in allele frequency with numbers over the mentioned threshold.
+After knowing the rescue probability we want to investigate if the allele "a" also is rescued (Why? One possible rescue scenario is also that only AA individuals survive). So we use the same rescue probability function as before and add the calculation of the frequency of allele "a". At the end we plot the allele frequency against the number of introduced individuals. First plot is including all the extinction events, where the second plot exclude them. We exclude the extinction events in the second plot since we are interested in the allele frequency change after a certain threshold (Threshold = \>80% rescue probability, as seen in previous plot at around 8-10 individuals). With out excluding them the slope of the trend line is really step and indicates that the more you introduce the better. However after reaching the threshold we are no more interested in extinction events since the rescue probability is over 80%. With that approach we can illustrate the change in allele frequency with numbers over the mentioned threshold.
 
 ```{r}
 # --- Allele frequency (a) vs. introduced number of individuals (N_AA) ---
@@ -558,9 +557,9 @@ ggplot(full_array_no0, aes(x = N_AA, y = allele.freq)) +
         panel.grid.minor = element_blank())
 ```
 
-# Plot of allele frequency (a) vs time (varying initial number of N_aa)
+## Plot of allele frequency (a) vs time (varying initial number of N_aa)
 
-After we observed the different effects of varying numbers of introduced individuals of N_AA, we now want to investigate how time plays a roll in our model. To understand the following part it is important to noticed, that we used the initial population size of N_aa as a proxy for time (i.e. the smaller the initial population size of N_aa the further time has passed, since the starting population is declining over time). Knowing that we observe the effect of time by plotting on the y-axies again the allele frequencies of "a" and now on the x-axies the initial population sizes of N_aa (as a proxy for time). 
+After we observed the different effects of varying numbers of introduced individuals of N_AA, we now want to investigate how time plays a roll in our model. To understand the following part it is important to noticed, that we used the initial population size of N_aa as a proxy for time (i.e. the smaller the initial population size of N_aa the further time has passed, since the starting population is declining over time). Knowing that we observe the effect of time by plotting on the y-axies again the allele frequencies of "a" and now on the x-axies the initial population sizes of N_aa (as a proxy for time).
 
 ```{r}
 # --- Allele frequency (a) vs. time (varying initial number of N_aa) ---
