@@ -628,7 +628,6 @@ full_df <- data.frame(
   allele.freq_a = c(rescue_prob_aas)                # convert matrix into a single vector
 )
 
-
 # ------------------------------------------------------------------
 # --- PLOTTING ---
 
