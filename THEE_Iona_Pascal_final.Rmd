@@ -447,7 +447,7 @@ rescue_prob <- function(N_AA_intro,           # number of AA individuals introdu
   
   call_freq_a <- c()   # vector to store allele frequencies for each replicate
   
-  # --- SIMULATION LOOP ---
+  # SIMULATION LOOP 
   for (i in 1:n_reps) {
     # Run one population trajectory using simulate_pop() function
     out <- simulate_pop(N_aa, N_aA, N_AA_intro, r_aa, s_aA, s_AA, t_max)
@@ -458,7 +458,7 @@ rescue_prob <- function(N_AA_intro,           # number of AA individuals introdu
     # Compute total population size at the end
     total_pop  <- sum(last_gen)
     
-    # --- Determine whether the population was rescued or not ---
+    # Determine whether the population was rescued or not
     # Rescue is defined as final population > initial population size
     if (total_pop > (N_aa + N_aA + N_AA_intro)) {
       # Calculate allele frequency of "a" in the final generation:
@@ -505,7 +505,7 @@ for (i in seq_along(N_AA_values)) {
 
 # PLOT 1: Including extinct populations 
 
-# Convert NAs back to zeros (for visualization)
+# Convert NAs back to zeros (this is due to an error that came up if we didn't do so)
 full_array$allele.freq[is.na(full_array$allele.freq)] <- 0
 
 # Plot all replicates, including extinction events (freq = 0)
